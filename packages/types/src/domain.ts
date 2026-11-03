@@ -495,3 +495,142 @@ export interface InventoryImportJobDetailDto extends InventoryImportJobSummaryDt
     data?: Record<string, unknown>;
   }>;
 }
+
+// -----------------------------------------------------------------------------
+// Supplier Supply Network (SSN) & B2B RFQ DTOs
+// -----------------------------------------------------------------------------
+
+export enum RfqStatus {
+  DRAFT = "DRAFT",
+  PUBLISHED = "PUBLISHED",
+  RESPONSES_RECEIVED = "RESPONSES_RECEIVED",
+  UNDER_NEGOTIATION = "UNDER_NEGOTIATION",
+  AWARDED = "AWARDED",
+  REJECTED = "REJECTED",
+  CANCELLED = "CANCELLED",
+  EXPIRED = "EXPIRED",
+}
+
+export enum QuotationStatus {
+  SUBMITTED = "SUBMITTED",
+  REVISED = "REVISED",
+  ACCEPTED = "ACCEPTED",
+  REJECTED = "REJECTED",
+  EXPIRED = "EXPIRED",
+  WITHDRAWN = "WITHDRAWN",
+}
+
+export interface EligibleSupplierDto {
+  businessId: string;
+  legalName: string;
+  tradeName: string;
+  businessType: BusinessType;
+  isVerified: boolean;
+  city?: string | null;
+  state?: string | null;
+  hasListingForProduct: boolean;
+  availableStock?: number;
+}
+
+export interface QuotationRevisionDto {
+  id: string;
+  quotationId: string;
+  revisionNumber: number;
+  unitPrice: number;
+  totalAmount: number;
+  availableQuantity: number;
+  minimumOrderQuantity: number;
+  leadTimeDays: number;
+  validityUntil: string;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface SourcingQuotationSummaryDto {
+  id: string;
+  quoteNumber: string;
+  rfqId: string;
+  supplierBusinessId: string;
+  supplierBusinessName: string;
+  submittedById: string;
+  unitPrice: number;
+  totalAmount: number;
+  availableQuantity: number;
+  minimumOrderQuantity: number;
+  leadTimeDays: number;
+  validityUntil: string;
+  status: QuotationStatus;
+  revision: number;
+  isExpired: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SourcingQuotationDetailDto extends SourcingQuotationSummaryDto {
+  terms?: string | null;
+  notes?: string | null;
+  revisions: QuotationRevisionDto[];
+}
+
+export interface SourcingRfqSummaryDto {
+  id: string;
+  rfqNumber: string;
+  buyerBusinessId: string;
+  buyerBusinessName: string;
+  masterProductId: string;
+  productName: string;
+  partNumber: string;
+  brandName: string;
+  quantity: number;
+  targetPrice?: number | null;
+  deliveryCity: string;
+  deliveryState: string;
+  deliveryDeadline: string;
+  expiresAt: string;
+  status: RfqStatus;
+  isExpired: boolean;
+  quotationsCount: number;
+  awardedQuotationId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SourcingRfqDetailDto extends SourcingRfqSummaryDto {
+  createdById: string;
+  createdByName?: string;
+  deliveryAddress: string;
+  deliveryPostalCode: string;
+  notes?: string | null;
+  categoryName?: string;
+  invitedSuppliers: Array<{
+    supplierBusinessId: string;
+    tradeName: string;
+    invitedAt: string;
+  }>;
+  awardedQuotation?: SourcingQuotationSummaryDto | null;
+}
+
+export interface RfqComparisonItemDto {
+  quotationId: string;
+  quoteNumber: string;
+  supplierBusinessId: string;
+  supplierName: string;
+  unitPrice: number;
+  totalAmount: number;
+  availableQuantity: number;
+  minimumOrderQuantity: number;
+  leadTimeDays: number;
+  validityUntil: string;
+  status: QuotationStatus;
+  revision: number;
+  priceDeltaVsTargetPercent?: number | null;
+  isBestPrice: boolean;
+  isFastestDelivery: boolean;
+}
+
+export interface RfqComparisonDto {
+  rfq: SourcingRfqDetailDto;
+  quotations: RfqComparisonItemDto[];
+  lowestUnitPrice?: number | null;
+  fastestLeadTimeDays?: number | null;
+}

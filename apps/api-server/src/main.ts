@@ -60,6 +60,10 @@ async function bootstrap() {
       "Supplier OS — Warehouses & Inventory",
       "Multi-warehouse inventory, real-time stock control, and bulk catalog import",
     )
+    .addTag(
+      "Supplier Supply Network (SSN) — Wholesale & B2B RFQs",
+      "Supplier-to-supplier wholesale sourcing, quotations, negotiation, and atomic RFQ awards",
+    )
     .addTag("System", "Health and telemetry")
     .build();
 

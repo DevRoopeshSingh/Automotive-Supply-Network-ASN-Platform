@@ -313,3 +313,105 @@ curl -X POST http://localhost:4000/api/v1/supplier/inventory/import/execute \
     "jobId": "<JOB_ID>"
   }'
 ```
+
+## 8. Supplier Supply Network (SSN) & B2B RFQ Testing Guide
+
+### 8.1 Sourcing RFQ Creation & Publishing (Buyer)
+
+```bash
+# 1. Create a wholesale sourcing RFQ (Draft)
+curl -X POST http://localhost:4000/api/v1/supplier/ssn/rfqs \
+  -H "Authorization: Bearer <BUYER_TOKEN>" \
+  -H "X-Business-Id: <BUYER_BUSINESS_ID>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "masterProductId": "<MASTER_PRODUCT_ID>",
+    "quantity": 50,
+    "targetPrice": 1200.00,
+    "deliveryAddress": "Plot 12, Opera House Auto Market",
+    "deliveryCity": "Mumbai",
+    "deliveryState": "Maharashtra",
+    "deliveryPostalCode": "400004",
+    "deliveryDeadline": "2026-11-25T00:00:00.000Z",
+    "expiresAt": "2026-11-15T00:00:00.000Z",
+    "notes": "Need OEM packaging with warranty cards",
+    "publishImmediately": false
+  }'
+
+# 2. Publish draft RFQ to the network
+curl -X POST http://localhost:4000/api/v1/supplier/ssn/rfqs/<RFQ_ID>/publish \
+  -H "Authorization: Bearer <BUYER_TOKEN>" \
+  -H "X-Business-Id: <BUYER_BUSINESS_ID>"
+```
+
+### 8.2 Sourcing Discovery & Open RFQs (Supplier)
+
+```bash
+# 1. Discover verified suppliers stocking this product
+curl -X GET "http://localhost:4000/api/v1/supplier/ssn/rfqs/eligible-suppliers/<MASTER_PRODUCT_ID>" \
+  -H "Authorization: Bearer <BUYER_TOKEN>" \
+  -H "X-Business-Id: <BUYER_BUSINESS_ID>"
+
+# 2. Discover open RFQs available to the calling supplier
+curl -X GET "http://localhost:4000/api/v1/supplier/ssn/rfqs/open?page=1&limit=20" \
+  -H "Authorization: Bearer <SUPPLIER_TOKEN>" \
+  -H "X-Business-Id: <SUPPLIER_BUSINESS_ID>"
+```
+
+### 8.3 Quotation Submission, Revision & Confidentiality
+
+```bash
+# 1. Submit quotation for open RFQ
+curl -X POST http://localhost:4000/api/v1/supplier/ssn/quotations \
+  -H "Authorization: Bearer <SUPPLIER_TOKEN>" \
+  -H "X-Business-Id: <SUPPLIER_BUSINESS_ID>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "rfqId": "<RFQ_ID>",
+    "unitPrice": 1100.00,
+    "availableQuantity": 100,
+    "minimumOrderQuantity": 10,
+    "leadTimeDays": 2,
+    "validityUntil": "2026-11-14T00:00:00.000Z",
+    "terms": "Net 15 days via bank transfer",
+    "notes": "Ready for immediate dispatch"
+  }'
+
+# 2. Revise quotation prior to award (creates revision snapshot)
+curl -X PATCH http://localhost:4000/api/v1/supplier/ssn/quotations/<QUOTATION_ID>/revise \
+  -H "Authorization: Bearer <SUPPLIER_TOKEN>" \
+  -H "X-Business-Id: <SUPPLIER_BUSINESS_ID>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "unitPrice": 1050.00,
+    "availableQuantity": 100,
+    "minimumOrderQuantity": 10,
+    "leadTimeDays": 1,
+    "validityUntil": "2026-11-14T00:00:00.000Z",
+    "notes": "Revised price with 1-day express delivery"
+  }'
+
+# 3. Verify quotation confidentiality (forbidden for other suppliers)
+curl -X GET http://localhost:4000/api/v1/supplier/ssn/quotations/<QUOTATION_ID> \
+  -H "Authorization: Bearer <COMPETING_SUPPLIER_TOKEN>" \
+  -H "X-Business-Id: <COMPETING_SUPPLIER_BUSINESS_ID>"
+# -> HTTP 403 Forbidden
+```
+
+### 8.4 Quotation Comparison Matrix & Atomic Award (Buyer)
+
+```bash
+# 1. View quotation comparison matrix with best-price and fastest-delivery flags
+curl -X GET http://localhost:4000/api/v1/supplier/ssn/rfqs/<RFQ_ID>/compare \
+  -H "Authorization: Bearer <BUYER_TOKEN>" \
+  -H "X-Business-Id: <BUYER_BUSINESS_ID>"
+
+# 2. Atomically award RFQ to winning quotation
+curl -X POST http://localhost:4000/api/v1/supplier/ssn/rfqs/<RFQ_ID>/award \
+  -H "Authorization: Bearer <BUYER_TOKEN>" \
+  -H "X-Business-Id: <BUYER_BUSINESS_ID>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "quotationId": "<WINNING_QUOTATION_ID>"
+  }'
+```

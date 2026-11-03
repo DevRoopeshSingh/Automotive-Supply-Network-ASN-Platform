@@ -72,6 +72,8 @@ model User {
   carts           Cart[]
   auditLogs       AuditLog[]
   inventoryMovements InventoryMovement[]
+  createdRfqs        SourcingRfq[]        @relation("CreatedRfqs")
+  submittedQuotations SourcingQuotation[] @relation("SubmittedQuotations")
 
   @@map("users")
 }
@@ -99,6 +101,9 @@ model Business {
   buyerOrders        Order[]              @relation("BuyerOrders")
   ledgerEntries      FinancialLedger[]
   auditLogs          AuditLog[]
+  buyerRfqs          SourcingRfq[]        @relation("BuyerRfqs")
+  supplierQuotations SourcingQuotation[]  @relation("SupplierQuotations")
+  invitedRfqs        RfqInvitedSupplier[] @relation("InvitedRfqs")
 
   @@map("businesses")
 }
@@ -355,6 +360,7 @@ model MasterProduct {
   oemReferences        OEMPartReference[]
   media                ProductMedia[]
   supplierListings     SupplierProduct[]
+  sourcingRfqs         SourcingRfq[]
 
   @@unique([partNumber, brandId])
   @@index([partNumber])
@@ -841,5 +847,129 @@ model AuditLog {
   @@index([businessId])
   @@index([action])
   @@map("audit_logs")
+}
+
+// -----------------------------------------------------------------------------
+// Supplier Supply Network (SSN) — Wholesale Sourcing & B2B RFQs
+// -----------------------------------------------------------------------------
+
+enum RfqStatus {
+  DRAFT
+  PUBLISHED
+  RESPONSES_RECEIVED
+  UNDER_NEGOTIATION
+  AWARDED
+  REJECTED
+  CANCELLED
+  EXPIRED
+}
+
+enum QuotationStatus {
+  SUBMITTED
+  REVISED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  WITHDRAWN
+}
+
+model SourcingRfq {
+  id                 String               @id @default(uuid()) @db.Uuid
+  rfqNumber          String               @unique @map("rfq_number")
+  buyerBusinessId    String               @map("buyer_business_id") @db.Uuid
+  createdById        String               @map("created_by_id") @db.Uuid
+  masterProductId    String               @map("master_product_id") @db.Uuid
+  quantity           Int
+  targetPrice        Decimal?             @map("target_price") @db.Decimal(10, 2)
+  deliveryAddress    String               @map("delivery_address")
+  deliveryCity       String               @map("delivery_city")
+  deliveryState      String               @map("delivery_state")
+  deliveryPostalCode String               @map("delivery_postal_code")
+  deliveryDeadline   DateTime             @map("delivery_deadline")
+  expiresAt          DateTime             @map("expires_at")
+  status             RfqStatus            @default(DRAFT)
+  notes              String?
+  awardedQuotationId String?              @unique @map("awarded_quotation_id") @db.Uuid
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @default(now()) @map("updated_at")
+
+  buyerBusiness      Business             @relation("BuyerRfqs", fields: [buyerBusinessId], references: [id], onDelete: Cascade)
+  createdBy          User                 @relation("CreatedRfqs", fields: [createdById], references: [id])
+  masterProduct      MasterProduct        @relation(fields: [masterProductId], references: [id])
+  quotations         SourcingQuotation[]  @relation("RfqQuotations")
+  invitedSuppliers   RfqInvitedSupplier[]
+  awardedQuotation   SourcingQuotation?   @relation("AwardedQuotation", fields: [awardedQuotationId], references: [id], onDelete: SetNull)
+
+  @@index([buyerBusinessId, status])
+  @@index([masterProductId, status])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("sourcing_rfqs")
+}
+
+model SourcingQuotation {
+  id                   String              @id @default(uuid()) @db.Uuid
+  quoteNumber          String              @unique @map("quote_number")
+  rfqId                String              @map("rfq_id") @db.Uuid
+  supplierBusinessId   String              @map("supplier_business_id") @db.Uuid
+  submittedById        String              @map("submitted_by_id") @db.Uuid
+  unitPrice            Decimal             @map("unit_price") @db.Decimal(10, 2)
+  totalAmount          Decimal             @map("total_amount") @db.Decimal(10, 2)
+  availableQuantity    Int                 @map("available_quantity")
+  minimumOrderQuantity Int                 @default(1) @map("minimum_order_quantity")
+  leadTimeDays         Int                 @default(1) @map("lead_time_days")
+  validityUntil        DateTime            @map("validity_until")
+  status               QuotationStatus     @default(SUBMITTED)
+  revision             Int                 @default(1)
+  terms                String?
+  notes                String?
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @default(now()) @map("updated_at")
+
+  rfq                  SourcingRfq         @relation("RfqQuotations", fields: [rfqId], references: [id], onDelete: Cascade)
+  supplierBusiness     Business            @relation("SupplierQuotations", fields: [supplierBusinessId], references: [id], onDelete: Cascade)
+  submittedBy          User                @relation("SubmittedQuotations", fields: [submittedById], references: [id])
+  revisions            QuotationRevision[]
+  awardedAsQuotation   SourcingRfq?        @relation("AwardedQuotation")
+
+  @@unique([rfqId, supplierBusinessId])
+  @@index([rfqId, status])
+  @@index([supplierBusinessId, status])
+  @@index([validityUntil])
+  @@map("sourcing_quotations")
+}
+
+model QuotationRevision {
+  id                   String            @id @default(uuid()) @db.Uuid
+  quotationId          String            @map("quotation_id") @db.Uuid
+  revisionNumber       Int               @map("revision_number")
+  unitPrice            Decimal           @map("unit_price") @db.Decimal(10, 2)
+  totalAmount          Decimal           @map("total_amount") @db.Decimal(10, 2)
+  availableQuantity    Int               @map("available_quantity")
+  minimumOrderQuantity Int               @default(1) @map("minimum_order_quantity")
+  leadTimeDays         Int               @map("lead_time_days")
+  validityUntil        DateTime          @map("validity_until")
+  notes                String?
+  createdAt            DateTime          @default(now()) @map("created_at")
+
+  quotation            SourcingQuotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@unique([quotationId, revisionNumber])
+  @@index([quotationId])
+  @@map("quotation_revisions")
+}
+
+model RfqInvitedSupplier {
+  id                 String      @id @default(uuid()) @db.Uuid
+  rfqId              String      @map("rfq_id") @db.Uuid
+  supplierBusinessId String      @map("supplier_business_id") @db.Uuid
+  invitedAt          DateTime    @default(now()) @map("invited_at")
+
+  rfq                SourcingRfq @relation(fields: [rfqId], references: [id], onDelete: Cascade)
+  supplierBusiness   Business    @relation("InvitedRfqs", fields: [supplierBusinessId], references: [id], onDelete: Cascade)
+
+  @@unique([rfqId, supplierBusinessId])
+  @@index([supplierBusinessId])
+  @@map("rfq_invited_suppliers")
 }
 

@@ -149,6 +149,58 @@ flowchart TD
   3. **Master Catalog Matching**: Looks up each part number against indexed normalized part numbers in `MasterProduct`. Missing parts are flagged with row numbers.
   4. **Preview & Execution**: Staged in `InventoryImportJob` with status `PREVIEW_READY`. Suppliers review error reports before committing. Executing valid rows commits inventory in atomic batches and logs `BULK_IMPORT` movements, returning `COMPLETED` or `PARTIAL_SUCCESS`.
 
+## 7. Supplier Supply Network (SSN) & B2B RFQ Engine
+
+### 7.1 Supplier-to-Supplier Wholesale Sourcing Architecture
+
+- **`SourcingRfq`**: Enables verified automotive suppliers, workshops, and fleet operators to create wholesale procurement requests for canonical parts from `MasterProduct`.
+- **Supplier Discovery**: Buyers discover verified distributors, wholesalers, and manufacturers stocking requested parts via `discoverEligibleSuppliers`, which checks active `SupplierProduct` listings and multi-warehouse physical stock balances.
+- **Access & Invitation Controls**:
+  - **Public Network RFQs**: Visible to all verified suppliers on the platform network.
+  - **Invited RFQs**: Restricted to a targeted list of vetted suppliers via `RfqInvitedSupplier`.
+
+### 7.2 B2B RFQ Lifecycle & State Machine
+
+The RFQ engine manages complete status transitions:
+
+- `DRAFT`: RFQ created and editable by buyer; not yet visible on network.
+- `PUBLISHED`: Open for supplier discovery and bidding.
+- `RESPONSES_RECEIVED`: At least one quotation has been submitted by an eligible supplier.
+- `UNDER_NEGOTIATION`: Quotation revisions or price discussions in progress.
+- `AWARDED`: Winning quotation accepted via atomic transaction.
+- `CANCELLED`: Withdrawn by buyer prior to award.
+- `REJECTED`: Explicitly rejected by buyer.
+- `EXPIRED`: Validity period elapsed without award.
+
+### 7.3 Strict Quotation Confidentiality & Revision Snapshots
+
+- **Commercial Confidentiality Invariant**: Competing suppliers are strictly prohibited from viewing each other's quotes, lead times, or margins. Only the RFQ creator (buyer) and the respective responding supplier have access to quotation records.
+- **Revision Snapshotting (`QuotationRevision`)**:
+  When a supplier updates an offer prior to award:
+  1. Current values (`unitPrice`, `totalAmount`, `leadTimeDays`, `validityUntil`, `notes`) are preserved in an immutable `QuotationRevision` record.
+  2. The active `SourcingQuotation` record updates with revised pricing, delivery timeline, and an incremented `revision` number.
+  3. Status updates to `REVISED`.
+
+### 7.4 Atomic RFQ Award & Race Condition Protection
+
+Awarding an RFQ is guarded inside a database transaction (`prisma.$transaction`):
+
+1. Verifies RFQ status is open (`PUBLISHED`, `RESPONSES_RECEIVED`, or `UNDER_NEGOTIATION`) and `awardedQuotationId` is null.
+2. Verifies the winning quotation belongs to this RFQ, is `SUBMITTED` or `REVISED`, and has not expired.
+3. Updates the winning quotation status to `ACCEPTED`.
+4. Atomically updates all other active quotations for this RFQ to `REJECTED`.
+5. Updates RFQ status to `AWARDED` with `awardedQuotationId: quotationId`.
+6. Concurrent or duplicate award attempts are rejected with `409 Conflict`.
+7. Immutable audit logs are written for both buyer and winning supplier via `AuditService`.
+
+### 7.5 Quotation Comparison Matrix & Commercial Analytics
+
+- **Buyer Comparison Matrix (`compareQuotations`)**:
+  - Aggregates all submitted quotations for an RFQ.
+  - Identifies `lowestUnitPrice` and `fastestLeadTimeDays`.
+  - Calculates percentage delta against the buyer's optional `targetPrice`.
+  - Marks `isBestPrice` and `isFastestDelivery` badges to accelerate buyer decision-making.
+
 ---
 
 ## 4. Multi-Tenant Identity, Authentication & Session Security
@@ -243,3 +295,55 @@ flowchart TD
   2. **Intra-File Validation**: Detects duplicate SKUs or duplicate part/brand combinations within the uploaded spreadsheet.
   3. **Master Catalog Matching**: Looks up each part number against indexed normalized part numbers in `MasterProduct`. Missing parts are flagged with row numbers.
   4. **Preview & Execution**: Staged in `InventoryImportJob` with status `PREVIEW_READY`. Suppliers review error reports before committing. Executing valid rows commits inventory in atomic batches and logs `BULK_IMPORT` movements, returning `COMPLETED` or `PARTIAL_SUCCESS`.
+
+## 7. Supplier Supply Network (SSN) & B2B RFQ Engine
+
+### 7.1 Supplier-to-Supplier Wholesale Sourcing Architecture
+
+- **`SourcingRfq`**: Enables verified automotive suppliers, workshops, and fleet operators to create wholesale procurement requests for canonical parts from `MasterProduct`.
+- **Supplier Discovery**: Buyers discover verified distributors, wholesalers, and manufacturers stocking requested parts via `discoverEligibleSuppliers`, which checks active `SupplierProduct` listings and multi-warehouse physical stock balances.
+- **Access & Invitation Controls**:
+  - **Public Network RFQs**: Visible to all verified suppliers on the platform network.
+  - **Invited RFQs**: Restricted to a targeted list of vetted suppliers via `RfqInvitedSupplier`.
+
+### 7.2 B2B RFQ Lifecycle & State Machine
+
+The RFQ engine manages complete status transitions:
+
+- `DRAFT`: RFQ created and editable by buyer; not yet visible on network.
+- `PUBLISHED`: Open for supplier discovery and bidding.
+- `RESPONSES_RECEIVED`: At least one quotation has been submitted by an eligible supplier.
+- `UNDER_NEGOTIATION`: Quotation revisions or price discussions in progress.
+- `AWARDED`: Winning quotation accepted via atomic transaction.
+- `CANCELLED`: Withdrawn by buyer prior to award.
+- `REJECTED`: Explicitly rejected by buyer.
+- `EXPIRED`: Validity period elapsed without award.
+
+### 7.3 Strict Quotation Confidentiality & Revision Snapshots
+
+- **Commercial Confidentiality Invariant**: Competing suppliers are strictly prohibited from viewing each other's quotes, lead times, or margins. Only the RFQ creator (buyer) and the respective responding supplier have access to quotation records.
+- **Revision Snapshotting (`QuotationRevision`)**:
+  When a supplier updates an offer prior to award:
+  1. Current values (`unitPrice`, `totalAmount`, `leadTimeDays`, `validityUntil`, `notes`) are preserved in an immutable `QuotationRevision` record.
+  2. The active `SourcingQuotation` record updates with revised pricing, delivery timeline, and an incremented `revision` number.
+  3. Status updates to `REVISED`.
+
+### 7.4 Atomic RFQ Award & Race Condition Protection
+
+Awarding an RFQ is guarded inside a database transaction (`prisma.$transaction`):
+
+1. Verifies RFQ status is open (`PUBLISHED`, `RESPONSES_RECEIVED`, or `UNDER_NEGOTIATION`) and `awardedQuotationId` is null.
+2. Verifies the winning quotation belongs to this RFQ, is `SUBMITTED` or `REVISED`, and has not expired.
+3. Updates the winning quotation status to `ACCEPTED`.
+4. Atomically updates all other active quotations for this RFQ to `REJECTED`.
+5. Updates RFQ status to `AWARDED` with `awardedQuotationId: quotationId`.
+6. Concurrent or duplicate award attempts are rejected with `409 Conflict`.
+7. Immutable audit logs are written for both buyer and winning supplier via `AuditService`.
+
+### 7.5 Quotation Comparison Matrix & Commercial Analytics
+
+- **Buyer Comparison Matrix (`compareQuotations`)**:
+  - Aggregates all submitted quotations for an RFQ.
+  - Identifies `lowestUnitPrice` and `fastestLeadTimeDays`.
+  - Calculates percentage delta against the buyer's optional `targetPrice`.
+  - Marks `isBestPrice` and `isFastestDelivery` badges to accelerate buyer decision-making.
