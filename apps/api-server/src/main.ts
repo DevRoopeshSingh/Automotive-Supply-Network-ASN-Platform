@@ -2,6 +2,7 @@ import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
 import * as dotenv from "dotenv";
 import { AppModule } from "./app.module";
 import { createLogger } from "@asn/logger";
@@ -15,6 +16,7 @@ async function bootstrap() {
 
   // Security middleware
   app.use(helmet());
+  app.use(cookieParser());
   app.enableCors({
     origin: process.env["CORS_ORIGIN"] || "*",
     credentials: true,
@@ -38,10 +40,19 @@ async function bootstrap() {
   const config = new DocumentBuilder()
     .setTitle("Automotive Supply Network (ASN) Core API")
     .setDescription(
-      "Modular Monolith Backend API for ASN Commerce, Logistics & Supplier OS",
+      "Modular Monolith Backend API for ASN Commerce, Multi-Tenant Auth, Logistics & Supplier OS",
     )
     .setVersion("1.0.0")
     .addBearerAuth()
+    .addTag(
+      "Authentication",
+      "Phone OTP login, refresh rotation and profile endpoints",
+    )
+    .addTag(
+      "Business Accounts",
+      "Multi-tenant organization accounts, switching and invitations",
+    )
+    .addTag("System", "Health and telemetry")
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

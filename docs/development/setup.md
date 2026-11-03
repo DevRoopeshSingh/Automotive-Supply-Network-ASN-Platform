@@ -90,3 +90,56 @@ pnpm typecheck
 # Check code formatting with Prettier
 pnpm format:check
 ```
+
+---
+
+## 5. Local Authentication & Multi-Tenant Testing
+
+### 5.1 Request Phone OTP
+
+```bash
+curl -X POST http://localhost:4000/api/v1/auth/otp/request \
+  -H "Content-Type: application/json" \
+  -d '{"phone": "9876543210"}'
+```
+
+_(In development mode, check your server console for the mock OTP dispatch log.)_
+
+### 5.2 Verify OTP & Obtain Tokens
+
+```bash
+curl -X POST http://localhost:4000/api/v1/auth/otp/verify \
+  -H "Content-Type: application/json" \
+  -d '{"phone": "9876543210", "otp": "<6-DIGIT-OTP>"}'
+```
+
+_Returns `accessToken` (valid for 15 mins) and sets `asn_refresh_token` in HttpOnly cookie / JSON response._
+
+### 5.3 Fetch Current User Profile
+
+```bash
+curl -X GET http://localhost:4000/api/v1/auth/me \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+### 5.4 Create Business & Switch Active Tenant
+
+```bash
+# 1. Create a business (Creator is automatically assigned as BUSINESS_OWNER)
+curl -X POST http://localhost:4000/api/v1/businesses \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "legalName": "Apex Auto Spares LLP",
+    "tradeName": "Apex Spares",
+    "businessType": "DISTRIBUTOR",
+    "addressLine1": "Gala 4, Kurla Industrial Estate",
+    "city": "Mumbai",
+    "state": "Maharashtra",
+    "postalCode": "400070"
+  }'
+
+# 2. Switch context to the newly created business (returns new scoped token)
+curl -X POST http://localhost:4000/api/v1/businesses/<BUSINESS_ID>/switch \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```

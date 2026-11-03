@@ -29,6 +29,17 @@ enum VerificationStatus {
 }
 
 enum UserRole {
+  // Platform Super Admin
+  PLATFORM_SUPER_ADMIN
+  SUPER_ADMIN
+
+  // Generic Tenant RBAC Roles
+  BUSINESS_OWNER
+  BUSINESS_ADMIN
+  BUSINESS_MANAGER
+  BUSINESS_STAFF
+
+  // Domain Roles
   GARAGE_OWNER
   WORKSHOP_MANAGER
   FLEET_MANAGER
@@ -39,23 +50,25 @@ enum UserRole {
   WHOLESALE_TRADER
   DELIVERY_PARTNER
   FLEET_DISPATCHER
-  SUPER_ADMIN
   CATALOG_SPECIALIST
   DISPATCH_CONTROLLER
   FINANCE_CONTROLLER
 }
 
 model User {
-  id              String           @id @default(uuid()) @db.Uuid
-  phone           String           @unique
-  email           String?          @unique
-  firstName       String           @map("first_name")
-  lastName        String           @map("last_name")
-  isActive        Boolean          @default(true) @map("is_active")
-  createdAt       DateTime         @default(now()) @map("created_at")
-  updatedAt       DateTime         @updatedAt @map("updated_at")
+  id              String               @id @default(uuid()) @db.Uuid
+  phone           String               @unique
+  email           String?              @unique
+  firstName       String?              @default("") @map("first_name")
+  lastName        String?              @default("") @map("last_name")
+  isSuperAdmin    Boolean              @default(false) @map("is_super_admin")
+  isActive        Boolean              @default(true) @map("is_active")
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
 
   memberships     BusinessMember[]
+  refreshSessions RefreshSession[]
+  sentInvitations BusinessInvitation[] @relation("SentInvitations")
   carts           Cart[]
   auditLogs       AuditLog[]
 
@@ -63,24 +76,26 @@ model User {
 }
 
 model Business {
-  id                 String             @id @default(uuid()) @db.Uuid
-  legalName          String             @map("legal_name")
-  tradeName          String             @map("trade_name")
-  businessType       BusinessType       @map("business_type")
-  gstNumber          String?            @unique @map("gst_number")
-  panNumber          String?            @map("pan_number")
-  verificationStatus VerificationStatus @default(PENDING) @map("verification_status")
-  isActive           Boolean            @default(true) @map("is_active")
-  createdAt          DateTime           @default(now()) @map("created_at")
-  updatedAt          DateTime           @updatedAt @map("updated_at")
+  id                 String               @id @default(uuid()) @db.Uuid
+  legalName          String               @map("legal_name")
+  tradeName          String               @map("trade_name")
+  businessType       BusinessType         @map("business_type")
+  gstNumber          String?              @unique @map("gst_number")
+  panNumber          String?              @map("pan_number")
+  verificationStatus VerificationStatus   @default(PENDING) @map("verification_status")
+  isActive           Boolean              @default(true) @map("is_active")
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
 
   members            BusinessMember[]
+  invitations        BusinessInvitation[]
   addresses          Address[]
   documents          VerificationDocument[]
   supplierProducts   SupplierProduct[]
-  supplierOrders     Order[]            @relation("SupplierOrders")
-  buyerOrders        Order[]            @relation("BuyerOrders")
+  supplierOrders     Order[]              @relation("SupplierOrders")
+  buyerOrders        Order[]              @relation("BuyerOrders")
   ledgerEntries      FinancialLedger[]
+  auditLogs          AuditLog[]
 
   @@map("businesses")
 }
@@ -89,7 +104,7 @@ model BusinessMember {
   id         String     @id @default(uuid()) @db.Uuid
   userId     String     @map("user_id") @db.Uuid
   businessId String     @map("business_id") @db.Uuid
-  role       UserRole   @default(SUPPLIER_ADMIN)
+  role       UserRole   @default(BUSINESS_STAFF)
   isPrimary  Boolean    @default(false) @map("is_primary")
   createdAt  DateTime   @default(now()) @map("created_at")
 
@@ -98,6 +113,67 @@ model BusinessMember {
 
   @@unique([userId, businessId])
   @@map("business_members")
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  REVOKED
+}
+
+model BusinessInvitation {
+  id          String           @id @default(uuid()) @db.Uuid
+  businessId  String           @map("business_id") @db.Uuid
+  phone       String
+  email       String?
+  role        UserRole         @default(BUSINESS_STAFF)
+  invitedById String           @map("invited_by_id") @db.Uuid
+  status      InvitationStatus @default(PENDING)
+  token       String           @unique
+  expiresAt   DateTime         @map("expires_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  business    Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  invitedBy   User             @relation("SentInvitations", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([businessId, status])
+  @@index([phone, status])
+  @@map("business_invitations")
+}
+
+model RefreshSession {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  tokenHash  String   @unique @map("token_hash")
+  familyId   String   @map("family_id") @db.Uuid
+  userAgent  String?  @map("user_agent")
+  ipAddress  String?  @map("ip_address")
+  isRevoked  Boolean  @default(false) @map("is_revoked")
+  expiresAt  DateTime @map("expires_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+  @@map("refresh_sessions")
+}
+
+model OtpRecord {
+  id        String   @id @default(uuid()) @db.Uuid
+  phone     String
+  otpHash   String   @map("otp_hash")
+  attempts  Int      @default(0)
+  isUsed    Boolean  @default(false) @map("is_used")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([phone, isUsed, expiresAt])
+  @@map("otp_records")
 }
 
 model Address {
@@ -535,16 +611,22 @@ model FinancialLedger {
 // -----------------------------------------------------------------------------
 
 model AuditLog {
-  id         String   @id @default(uuid()) @db.Uuid
-  userId     String?  @map("user_id") @db.Uuid
-  action     String   // e.g. UPDATE_COMMISSION_RULE, CANCEL_ORDER
-  resource   String   // e.g. CommissionRule:123
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String?   @map("user_id") @db.Uuid
+  businessId String?   @map("business_id") @db.Uuid
+  action     String    // e.g. AUTH_LOGIN, CREATE_BUSINESS, SWITCH_BUSINESS
+  resource   String    // e.g. User:uuid, Business:uuid
   payload    Json?
-  ipAddress  String?  @map("ip_address")
-  createdAt  DateTime @default(now()) @map("created_at")
+  ipAddress  String?   @map("ip_address")
+  userAgent  String?   @map("user_agent")
+  createdAt  DateTime  @default(now()) @map("created_at")
 
-  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  business   Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
 
+  @@index([userId])
+  @@index([businessId])
+  @@index([action])
   @@map("audit_logs")
 }
 

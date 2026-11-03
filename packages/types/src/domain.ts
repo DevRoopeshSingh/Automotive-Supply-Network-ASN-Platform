@@ -22,24 +22,27 @@ export enum BusinessType {
 }
 
 export enum UserRole {
-  // Buyer Roles
+  // Platform Super Admin
+  PLATFORM_SUPER_ADMIN = "PLATFORM_SUPER_ADMIN",
+  SUPER_ADMIN = "SUPER_ADMIN",
+
+  // Tenant / Business RBAC Roles
+  BUSINESS_OWNER = "BUSINESS_OWNER",
+  BUSINESS_ADMIN = "BUSINESS_ADMIN",
+  BUSINESS_MANAGER = "BUSINESS_MANAGER",
+  BUSINESS_STAFF = "BUSINESS_STAFF",
+
+  // Domain Roles
   GARAGE_OWNER = "GARAGE_OWNER",
   WORKSHOP_MANAGER = "WORKSHOP_MANAGER",
   FLEET_MANAGER = "FLEET_MANAGER",
   INDIVIDUAL_OWNER = "INDIVIDUAL_OWNER",
-
-  // Supplier Roles
   SUPPLIER_ADMIN = "SUPPLIER_ADMIN",
   INVENTORY_MANAGER = "INVENTORY_MANAGER",
   FULFILLMENT_STAFF = "FULFILLMENT_STAFF",
   WHOLESALE_TRADER = "WHOLESALE_TRADER",
-
-  // Logistics Roles
   DELIVERY_PARTNER = "DELIVERY_PARTNER",
   FLEET_DISPATCHER = "FLEET_DISPATCHER",
-
-  // Platform Admin Roles
-  SUPER_ADMIN = "SUPER_ADMIN",
   CATALOG_SPECIALIST = "CATALOG_SPECIALIST",
   DISPATCH_CONTROLLER = "DISPATCH_CONTROLLER",
   FINANCE_CONTROLLER = "FINANCE_CONTROLLER",
@@ -67,11 +70,23 @@ export enum Permission {
   LOGISTICS_NAVIGATE = "LOGISTICS_NAVIGATE",
   LOGISTICS_POD = "LOGISTICS_POD",
 
+  // Business Management
+  BUSINESS_MANAGE = "BUSINESS_MANAGE",
+  BUSINESS_INVITE = "BUSINESS_INVITE",
+
   // Administration
   ADMIN_CATALOG = "ADMIN_CATALOG",
   ADMIN_SETTLEMENT = "ADMIN_SETTLEMENT",
   ADMIN_DISPUTES = "ADMIN_DISPUTES",
   ADMIN_AUDIT = "ADMIN_AUDIT",
+}
+
+export enum InvitationStatus {
+  PENDING = "PENDING",
+  ACCEPTED = "ACCEPTED",
+  REJECTED = "REJECTED",
+  EXPIRED = "EXPIRED",
+  REVOKED = "REVOKED",
 }
 
 export enum VehicleSegment {
@@ -148,15 +163,49 @@ export enum LedgerEntryType {
   REFUND_REVERSAL = "REFUND_REVERSAL",
 }
 
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  tokenType: "Bearer";
+}
+
+export interface JwtAccessPayload {
+  sub: string;
+  phone: string;
+  isSuperAdmin: boolean;
+  activeBusinessId?: string;
+  role?: UserRole;
+  workspaceMode?: WorkspaceMode;
+}
+
+export interface JwtRefreshPayload {
+  sub: string;
+  sessionId: string;
+  familyId: string;
+}
+
 export interface UserContext {
   id: string;
   phone: string;
-  email?: string;
-  firstName: string;
-  lastName: string;
+  email?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  isSuperAdmin: boolean;
   activeBusinessId?: string;
-  roles: UserRole[];
-  permissions: Permission[];
+  role?: UserRole;
+  workspaceMode?: WorkspaceMode;
+  memberships: BusinessSummary[];
+}
+
+export interface BusinessSummary {
+  id: string;
+  legalName: string;
+  tradeName: string;
+  businessType: BusinessType;
+  role: UserRole;
+  isPrimary: boolean;
+  isVerified: boolean;
 }
 
 export interface BusinessContext {
@@ -165,6 +214,7 @@ export interface BusinessContext {
   tradeName: string;
   businessType: BusinessType;
   isVerified: boolean;
-  gstNumber?: string;
-  panNumber?: string;
+  gstNumber?: string | null;
+  panNumber?: string | null;
+  currentUserRole: UserRole;
 }
