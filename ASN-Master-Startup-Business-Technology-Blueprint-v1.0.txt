@@ -1,0 +1,1440 @@
+# Automotive Supply Network
+
+MASTER STARTUP, BUSINESS & TECHNOLOGY BLUEPRINT · VERSION 1.0 · NOVEMBER 2026
+
+# One Network. Every Automotive Requirement.
+
+The digital infrastructure connecting India's automotive aftermarket.
+
+A unified marketplace, supplier operating system, wholesale sourcing network and asset-light delivery infrastructure for cars, two-wheelers and commercial vehicles.
+
+Master blueprint
+
+Prepared as the strategic and technical foundation for product development, developer handover, business planning and launch execution.
+
+This blueprint is designed to be the central reference document for the business and its development team. It incorporates our previously established decisions rather than reopening them.
+
+# 1. Executive summary
+
+## 1.1 The business concept
+
+Automotive Supply Network (ASN) will be a unified digital platform connecting:
+
+- Automotive spare-parts manufacturers and distributors.
+- Wholesalers and retailers.
+- Independent garages and workshops.
+- Fleet operators.
+- Individual vehicle owners.
+- Independent delivery and logistics providers.
+
+The platform will allow customers to discover and purchase automotive parts, suppliers to manage their businesses, suppliers to trade with each other, and logistics partners to fulfil deliveries through one coordinated network.
+
+The central idea is simple:
+
+A buyer should not need to know which distributor has the required part, which supplier can source it or which delivery partner can transport it. The platform should coordinate the entire transaction.
+
+## 1.2 What we are building
+
+## Four connected business pillars
+
+01\. Automotive Marketplace
+
+Product discovery, comparison, purchasing, RFQs and order tracking for B2B and B2C customers.
+
+02\. Supplier OS
+
+Free basic software for inventory, quotations, orders, customers and procurement.
+
+03\. Supplier Supply Network
+
+Wholesale transactions, sourcing, stockout resolution and inter-supplier commerce.
+
+04\. Platform-managed Logistics
+
+Independent delivery partners coordinated through a common allocation, routing and tracking system.
+
+## 1.3 Business principles
+
+| Principle            | Decision                                     |
+| -------------------- | -------------------------------------------- |
+| Platform structure   | One unified platform                         |
+| Vehicle segments     | Cars, two-wheelers, commercial vehicles      |
+| Business model       | Commission-first                             |
+| Supplier software    | Free basic version                           |
+| Supplier exclusivity | Not required                                 |
+| Inventory ownership  | No owned inventory at launch                 |
+| Warehousing          | No owned warehouse at launch                 |
+| Delivery fleet       | Independent logistics partners               |
+| Initial market       | Mumbai                                       |
+| Delivery proposition | Up to 60 minutes when eligible               |
+| Catalogue            | Central master catalogue + supplier listings |
+| Inventory            | Listed stock + request-based sourcing        |
+
+The platform must remain asset-light and allow suppliers to continue their independent businesses outside ASN.
+
+# 2. Market opportunity and positioning
+
+## 2.1 The problem
+
+Automotive aftermarket procurement is fragmented.
+
+A garage may need a brake assembly, filter, sensor or suspension component. It may have to contact multiple shops and distributors to locate the correct part.
+
+The process often involves:
+
+- Calling suppliers individually.
+- Sending photographs over WhatsApp.
+- Searching different part numbers.
+- Manually comparing prices.
+- Confirming compatibility.
+- Negotiating availability.
+- Arranging pickup or delivery.
+- Following up on invoices and payment.
+
+This creates friction for both buyers and suppliers.
+
+## 2.2 Problems for each participant
+
+| Participant      | Problem                           | ASN solution                |
+| ---------------- | --------------------------------- | --------------------------- |
+| Garage           | Difficult to locate parts quickly | Unified search and sourcing |
+| Retailer         | Stockouts and excess inventory    | Inter-supplier trading      |
+| Distributor      | Limited digital visibility        | Supplier OS and marketplace |
+| Wholesaler       | Fragmented buyer network          | Wholesale marketplace       |
+| Fleet operator   | Procurement and downtime          | Centralised procurement     |
+| Vehicle owner    | Uncertain compatibility           | Vehicle-based discovery     |
+| Delivery partner | Fragmented delivery demand        | Coordinated assignments     |
+
+## 2.3 Positioning
+
+ASN should not position itself as merely an online spare-parts shop.
+
+It should be positioned as:
+
+An automotive aftermarket commerce and procurement network.
+
+Its competitive strengths should be built around:
+
+1. Supplier network density.
+2. Reliable product identification and fitment.
+3. Live stock confirmation.
+4. Inter-supplier sourcing.
+5. Multi-partner logistics coordination.
+6. Transparent transaction economics.
+7. Supplier-friendly software.
+
+These capabilities must be proven through operations; they should not be advertised as guaranteed until validated.
+
+## 2.4 Target market segments
+
+B2B customers
+
+- Independent garages.
+- Multi-brand workshops.
+- Spare-parts retailers.
+- Fleet maintenance companies.
+- Commercial vehicle operators.
+- Automotive service centres.
+
+B2C customers
+
+- Individual car owners.
+- Two-wheeler owners.
+- Commercial vehicle owners.
+
+Supply side
+
+- Manufacturers.
+- Authorised distributors.
+- Regional distributors.
+- Wholesalers.
+- Retailers.
+- Specialist component suppliers.
+
+# 3. Platform architecture
+
+## 3.1 Unified account architecture
+
+There should be one account system with switchable modes.
+
+A business may act as a buyer, supplier or both.
+
+For example, a retailer can:
+
+- Purchase stock from a wholesaler.
+- Sell products to garages.
+- Source unavailable products from another supplier.
+- Dispatch products using an ASN logistics partner.
+
+The platform must not require a separate account for every role.
+
+### Main application structure
+
+| Workspace      | Users                                |
+| -------------- | ------------------------------------ |
+| Buyer          | Garages, fleets, individuals         |
+| Supplier       | Distributors, retailers, wholesalers |
+| Supply Network | Verified suppliers                   |
+| Logistics      | Delivery partners                    |
+| Admin          | Internal ASN operations              |
+
+A user's permissions depend on their verified account type and assigned staff role.
+
+## 3.2 Buyer marketplace
+
+[TecDoc-Based B2B & B2C Auto Parts Platform](https://images.openai.com/static-rsc-4/hjv3UR99IttF3EqOFRgQ9jaahBGfPvZp3nL1fJIZD65tC0rZZYCUuY63ZeVzqYcKqOg59gtfLv1IClu6mzUVDNoBOcXXIuLCi6MUV0JxvaQ71V9ybQLPdAlNrcabQIFC42qGlWz7RqOHvmjW-XWEnnhKgol1pcWqUALe4w7IZDU?purpose=inline)
+
+[alexdrozdov.com](https://alexdrozdov.com/cases/tecdoc-b2b/?utm_source=chatgpt.com)
+
+### Screen structure
+
+| Screen              | Main functionality                        |
+| ------------------- | ----------------------------------------- |
+| Homepage            | Search, categories, nearby availability   |
+| Vehicle garage      | Save and select vehicles                  |
+| Search results      | Product listings and filters              |
+| Product details     | Fitment, specifications, seller, warranty |
+| Supplier comparison | Compare price, stock and delivery         |
+| RFQ                 | Request unavailable parts                 |
+| Cart                | Multi-supplier cart                       |
+| Checkout            | Reservation, eligibility and payment      |
+| Tracking            | Unified order tracking                    |
+| Account             | Orders, invoices, vehicles, returns       |
+
+### Homepage layout
+
+1. ASN branding and navigation.
+2. Location selector.
+3. Search by part, OEM number or brand.
+4. Vehicle selection.
+5. Product categories.
+6. Nearby suppliers.
+7. Available delivery options.
+8. Frequently purchased products.
+9. Order tracking access.
+
+The search bar should be the dominant element.
+
+### Vehicle selection
+
+Cars:
+
+- Manufacturer.
+- Model.
+- Variant.
+- Year.
+- Engine.
+- Fuel type.
+- Transmission.
+
+Two-wheelers:
+
+- Manufacturer.
+- Model.
+- Variant.
+- Year.
+- Engine displacement.
+
+Commercial vehicles:
+
+- Manufacturer.
+- Model.
+- Variant.
+- Engine.
+- Chassis/VIN where appropriate.
+
+The catalogue must distinguish verified compatibility from suggested or uncertain matches.
+
+### Product listing
+
+Each product should show:
+
+- Product name.
+- Manufacturer.
+- Part number.
+- Brand.
+- Product condition.
+- Supplier.
+- Price.
+- Stock status.
+- Last-updated time.
+- Warranty.
+- Delivery estimate.
+
+Classification must distinguish OEM, OES, aftermarket, used and refurbished products.
+
+## 3.3 Supplier operating system
+
+[Inventory & Supply Chain Management Platform | Stockzone](https://images.openai.com/static-rsc-4/7gjEG6fZoZXYD_6iDSsLHHqrqCRrMyJNLL0B1rIpk4Rw_ePp9TyeaFbMV0S790MmlOCgGpOLnOhlcEB7LZn1HuH6Br-LYW5RkFO5i_RomIkLNRDIB6aJh-Dr1SkmLxOhYX1kDXPnaiJoXSBoDEgzGsF_cw26QlbHfymrInlZ4jI?purpose=inline)
+
+[devorytech.com](https://devorytech.com/stockzone?utm_source=chatgpt.com)
+
+The Supplier OS is a major customer-acquisition strategy.
+
+We provide useful basic operating software free, allowing suppliers to digitise their operations and gradually participate in the larger network.
+
+### Supplier dashboard
+
+- Sales overview.
+- New orders.
+- Pending orders.
+- Active listings.
+- Low-stock products.
+- Incoming RFQs.
+- Pending quotations.
+- Earnings and settlement status.
+
+### Supplier modules
+
+| Module            | Functionality                            |
+| ----------------- | ---------------------------------------- |
+| Inventory         | Add, edit and update stock               |
+| Bulk uploads      | Excel, CSV and assisted imports          |
+| Product catalogue | Map supplier SKUs to master products     |
+| Orders            | Accept, reject and fulfil                |
+| Quotations        | Respond to RFQs                          |
+| Procurement       | Purchase stock from suppliers            |
+| Customers         | Customer and purchase records            |
+| Analytics         | Sales and stock performance              |
+| Finance           | Fees, earnings and settlement statements |
+| Settings          | Staff, permissions and visibility        |
+
+### Inventory visibility
+
+Suppliers should control whether products are visible to:
+
+- Everyone.
+- Verified buyers.
+- Other suppliers only.
+- Selected customers.
+- Request-only sourcing.
+
+### Stock status
+
+- Exact quantity.
+- Available.
+- Limited.
+- Out of stock.
+- On request.
+- Discontinued.
+
+The system should record stock source and last-updated timestamp.
+
+## 3.4 Supplier supply network
+
+[Carnate](https://images.openai.com/static-rsc-4/YXzimGmc1LdSH4uFIKl8E273CIPWrH8E42hXVGn_2JWz7W8VMi_80UbGX-XPG0QVyw88t3r1EBI3WIFXaVn5Uc8dTNGXKV5VY4NKKLJ0fWMZpip3uyAVDcAXefyp18XdH6eoxtmwj87sohNd8rHpy284NXxh1-BxXWj2f1F6lUU?purpose=inline)
+
+[carnate.in](https://carnate.in/?utm_source=chatgpt.com)
+
+This is a separate commercial environment inside the unified platform.
+
+### Main modules
+
+1. Wholesale marketplace.
+2. Supplier directory.
+3. Sourcing request board.
+4. Bulk procurement.
+5. Dead-stock exchange.
+6. Wholesale quotations.
+7. Purchase orders.
+8. Incoming inventory.
+
+### Example transaction
+
+Supplier A has a buyer requesting 30 units of a filter.
+
+Supplier A has only 10 units.
+
+Supplier A submits a sourcing request for 20 units.
+
+Supplier B offers the remaining stock.
+
+The platform must establish which commercial arrangement applies.
+
+| Model                         | Seller of record                                                         |
+| ----------------------------- | ------------------------------------------------------------------------ |
+| Wholesale purchase and resale | Supplier B sells to A; A resells to buyer                                |
+| Direct fulfilment             | Supplier B is seller to the final buyer                                  |
+| Sourcing/referral             | Seller is the agreed underlying supplier; A earns a disclosed commission |
+
+The invoice, title, warranty and delivery responsibilities must be clear for every model.
+
+## 3.5 Logistics partner application
+
+[Delivery Mobile App by Shihan Malik on Dribbble](https://images.openai.com/static-rsc-4/uEZQRvoA3g0dwXk_xUXBBgCPzPO2Z-2O9PjPHmN6KDn96PRQE1fnYmcN3HC6gGemJwPKzrjCrsOJoug64XpUKRL2ObCK5LjFqWiyylvM4VqAVmY9M_7JbLpBSPrOafMLgk5jC8u6zA4Wi2sjizLjPSkECBV1aLdwbVWFGpkel-0?purpose=inline)
+
+[dribbble.com](https://dribbble.com/shots/20283545-Delivery-Mobile-App?utm_source=chatgpt.com)
+
+Independent delivery providers onboard with their own vehicles.
+
+Partner categories:
+
+- Two-wheeler couriers.
+- Local delivery operators.
+- Vans.
+- Commercial transport providers.
+- Consolidation operators.
+- Last-mile providers.
+
+### Partner modules
+
+- Registration.
+- Business and identity verification.
+- Vehicle verification.
+- Service areas.
+- Availability.
+- Delivery assignments.
+- Route information.
+- Pickup confirmation.
+- Handover records.
+- Proof of delivery.
+- Earnings.
+- Performance.
+
+Partners see only information required for their assigned shipment or delivery leg.
+
+## 3.6 Admin control centre
+
+[flow360 – Digitize Your Automotive Supply Chain | Enfoque Logístico](https://images.openai.com/static-rsc-4/oPMRF1wYzEY0HTrJVHteq2PklatWdsceHKKA8sJHQDkcrJHiJUc_VdtsUycATo0WjNzjKCX-XW_DRYE7B6meL6Uh4ZsXKKfjBZx1A43hM9T0GonWQcUXglHrhSSN_fwwkOOWoAHWXLded1e1dZZkQR9j3TMW3xqcE-gYfC56GSE?purpose=inline)
+
+[enfoquelogistico.com](https://enfoquelogistico.com/?utm_source=chatgpt.com)
+
+The admin application is the central operating environment.
+
+It controls:
+
+- User verification.
+- Supplier management.
+- Buyer management.
+- Product master catalogue.
+- Vehicle fitment.
+- Marketplace transactions.
+- Supply network.
+- Logistics partners.
+- Delivery eligibility.
+- Commission rules.
+- Payments and settlements.
+- Disputes.
+- Reporting.
+- System configuration.
+- Security and audit.
+
+# 4. Catalogue and inventory architecture
+
+## 4.1 Hybrid catalogue model
+
+This is a critical architectural decision.
+
+The platform must maintain a central master product catalogue while allowing each supplier to create their own product listings.
+
+## Catalogue relationship
+
+Master product
+
+Standard product identity, brand, part number, specifications and fitment
+
+Supplier A
+
+SKU, price, stock
+
+Supplier B
+
+SKU, price, stock
+
+Supplier C
+
+SKU, price, stock
+
+### Master product fields
+
+- Master product ID.
+- Manufacturer.
+- Brand.
+- Part number.
+- Category.
+- Specifications.
+- Vehicle fitment.
+- Cross-reference numbers.
+- Product condition classification.
+- Reference images.
+
+### Supplier listing fields
+
+- Supplier ID.
+- Supplier SKU.
+- Master product ID.
+- Selling price.
+- Stock quantity/status.
+- Warehouse/shop location.
+- Warranty.
+- Condition.
+- Visibility.
+- Minimum order quantity.
+- Last updated.
+
+## 4.2 Product matching
+
+Matching priority:
+
+1. Exact manufacturer part number.
+2. Verified cross-reference.
+3. Confirmed vehicle and variant fitment.
+4. Product attributes and dimensions.
+5. Human verification.
+
+Safety-critical components must not rely on low-confidence automated matching.
+
+## 4.3 Inventory updates
+
+Inventory may enter through:
+
+- Manual entry.
+- Excel/CSV upload.
+- Barcode or part-number input.
+- Product photographs with assisted extraction.
+- Future POS/billing integrations.
+
+Every stock change must record its source and timestamp.
+
+# 5. Order and transaction architecture
+
+## 5.1 Multi-supplier checkout
+
+One buyer checkout may contain products from multiple suppliers.
+
+The platform should create:
+
+- One parent checkout.
+- Separate seller orders.
+- Separate seller invoices.
+- Separate supplier fulfilment records.
+- Separate shipment records.
+- One unified customer tracking experience.
+
+This is important because different suppliers may have different preparation times and delivery routes.
+
+## 5.2 Order lifecycle
+
+## Order lifecycle
+
+1. Buyer selects products
+2. Suppliers and stock are identified
+3. Stock and delivery partners are temporarily reserved
+4. Complete delivery eligibility is validated
+5. Buyer reviews final price and ETA
+6. Payment is confirmed
+7. Supplier prepares and dispatches
+8. Logistics partners fulfil assigned legs
+9. Delivery is completed
+10. Settlement and financial reconciliation
+
+### Order statuses
+
+- Created.
+- Awaiting supplier confirmation.
+- Reservation pending.
+- Eligible.
+- Payment pending.
+- Confirmed.
+- Preparing.
+- Ready for pickup.
+- Dispatched.
+- In transit.
+- Delivered.
+- Cancelled.
+- Partially refunded.
+- Refunded.
+- Disputed.
+
+The order state machine must prevent invalid transitions.
+
+# 6. Network-first 60-minute logistics architecture
+
+Core operating policy
+
+This is one of the most important parts of the platform.
+
+The delivery system must search the wider network before rejecting an order.
+
+## 6.1 Delivery promise
+
+- Express: 30–45 minutes.
+- Quick: 46–60 minutes.
+- Maximum customer-facing quick-delivery SLA: 60 minutes.
+- Internal target: 50–55 minutes.
+- No paid delayed-delivery option within the core quick-delivery proposition.
+
+This is a service commitment subject to the published eligibility and exception rules, not a claim that every location and order is always serviceable.
+
+## 6.2 Network-first workflow
+
+## Network availability engine
+
+1. Initial supplier search
+
+   Find local suppliers with potentially suitable stock.
+2. Supplier confirmation
+
+   Confirm quantity, product identity, fitment, price and preparation time.
+3. Expanded supplier search
+
+   Search additional suppliers if the first option is unsuitable.
+4. Initial logistics search
+
+   Find a suitable available delivery partner.
+5. Expanded logistics search
+
+   Search additional partners, vehicle types and service areas.
+6. Multi-partner route optimisation
+
+   Consider multiple pickups, transfers and handovers.
+7. 60-minute eligibility check
+
+   Validate the complete fulfilment journey.
+8. Buyer confirmation and payment
+
+   Display the actual seller, product, price and delivery estimate before payment.
+
+## 6.3 Delivery time calculation
+
+\\[ T\_{\text{delivery}} = T\_{\text{preparation}}+ T\_{\text{pickup}}+ T\_{\text{collection}}+ T\_{\text{transfer}}+ T\_{\text{last mile}}+ T\_{\text{handover}} \\]
+
+The route engine must calculate actual sequential and overlapping legs correctly, rather than simply adding all durations.
+
+Use current or recent traffic information, partner capacity, preparation time, package size, number of pickups and handover requirements.
+
+Reject the quick-delivery checkout if the complete predicted journey exceeds 60 minutes.
+
+## 6.4 Five-minute reservation policy
+
+| Parameter                 | Default                         |
+| ------------------------- | ------------------------------- |
+| Stock reservation         | 5 minutes                       |
+| Configurable alternatives | 3, 5 or 7 minutes               |
+| Partner allocation        | Temporary non-dispatch hold     |
+| Reservation expiry        | Automatic                       |
+| Stock commitment          | Successful payment              |
+| SLA clock start           | Successful payment confirmation |
+
+The reservation period is not included in the 60-minute delivery clock.
+
+Before payment:
+
+- Supplier confirms stock.
+- Supplier confirms preparation time.
+- Partner confirms capacity.
+- Route passes the 60-minute check.
+- Buyer approves any changed price or alternative.
+
+After payment:
+
+- Inventory is committed.
+- Supplier order is confirmed.
+- Delivery dispatch begins.
+- SLA tracking starts.
+
+## 6.5 Fallback rules
+
+If the first supplier is unavailable:
+
+- Search another supplier.
+- Expand the service area.
+- Search compatible alternatives only with buyer approval.
+
+If the first delivery partner is unavailable:
+
+- Search other partners.
+- Consider a different vehicle type.
+- Consider multi-partner routing.
+
+If no arrangement qualifies:
+
+1. Offer a different eligible supplier.
+2. Offer a compatible alternative, subject to fitment confirmation and buyer approval.
+3. Offer nearby collection if available.
+4. Offer an unpaid sourcing request.
+
+For a multi-supplier basket, default to all-or-nothing quick delivery. Offer a separate partial order if one component is ineligible.
+
+## 6.6 Logistics modules
+
+1. Serviceability Engine.
+2. Supplier Discovery Engine.
+3. Partner Discovery Engine.
+4. Network Expansion Engine.
+5. Stock Reservation Engine.
+6. Route Optimisation Engine.
+7. Delivery Eligibility Engine.
+8. Checkout and Order Engine.
+9. Dispatch and Tracking Engine.
+10. Partner Reassignment Engine.
+
+## 6.7 Logistics pricing
+
+Delivery price should consider:
+
+- Pickup count.
+- Distance.
+- Package dimensions.
+- Package weight.
+- Vehicle category.
+- Number of legs.
+- Partner cost.
+- Urgency.
+- Availability.
+
+The platform's logistics coordination margin must be itemised separately from the parts commission.
+
+# 7. Revenue and commercial architecture
+
+## 7.1 Revenue model
+
+ASN is commission-first, with no mandatory supplier subscription.
+
+| Revenue source                | Illustrative initial range |
+| ----------------------------- | -------------------------- |
+| B2B marketplace               | 3–5%                       |
+| B2C marketplace               | 8–10%                      |
+| Supplier-to-supplier          | 1–3%                       |
+| Logistics coordination margin | 5–15% of delivery charge   |
+| Basic Supplier OS             | Free                       |
+
+These are planning assumptions, not final market-validated rates. Admin can configure rules and negotiate supplier-specific agreements.
+
+## 7.2 Commission engine
+
+A central Commission & Settlement Engine (CCSE) must calculate charges across all four pillars.
+
+Rule precedence:
+
+1. Supplier-specific negotiated agreement.
+2. Transaction type.
+3. Buyer/supplier category.
+4. Vehicle/product category.
+5. Default rule.
+
+### Commission principles
+
+- Only one applicable parts commission on the same underlying sale.
+- Wholesale purchase and subsequent retail sale are separate transactions.
+- Logistics margin is separately calculated.
+- Fee payer and fee basis are disclosed before order acceptance.
+- Refunds trigger proportional reversals.
+- Failed or cancelled orders do not incur normal completed-sale commission, subject to disclosed cancellation/recovery costs.
+- Historical transactions preserve their original rate snapshot.
+- Admin changes are audited.
+- High-impact changes require additional approval.
+
+## 7.3 Example transaction economics
+
+Assume a buyer purchases parts worth ₹5,000.
+
+| Component                                               | Example |
+| ------------------------------------------------------- | ------- |
+| Product value                                           | ₹5,000  |
+| Parts commission at 4%                                  | ₹200    |
+| Delivery charge                                         | ₹100    |
+| Logistics coordination margin at 10% of delivery charge | ₹10     |
+| Illustrative platform revenue                           | ₹210    |
+
+This is before applicable taxes, payment costs, support costs, delivery-related costs and other operating expenses.
+
+It is not a profit calculation.
+
+## 7.4 Financial infrastructure
+
+Maintain:
+
+- Payment transaction records.
+- Seller allocations.
+- Commission calculations.
+- Refund records.
+- Commission reversals.
+- Partner payables.
+- Settlement batches.
+- Reconciliation records.
+- Append-only financial ledger.
+
+Do not create an independent unlicensed wallet or assume a payment gateway automatically supports compliant marketplace split settlements.
+
+# 8. Legal, compliance and trust framework
+
+The legal model needs professional review before commercial launch.
+
+## 8.1 Corporate and marketplace structure
+
+The platform company operates the marketplace and technology infrastructure.
+
+For normal marketplace transactions:
+
+- Supplier remains seller of record.
+- Supplier issues applicable seller invoice.
+- Platform invoices its own service or commission as legally appropriate.
+- Platform coordinates payment through an appropriately authorised provider.
+
+## 8.2 Compliance areas
+
+| Area                   | Work required                                                                             |
+| ---------------------- | ----------------------------------------------------------------------------------------- |
+| GST                    | E-commerce operator obligations, Section 52 where applicable, invoicing and tax treatment |
+| Payments               | RBI payment aggregator requirements and settlement structure                              |
+| Consumer law           | Marketplace disclosures, returns and grievance mechanisms                                 |
+| Privacy                | Digital Personal Data Protection Act compliance                                           |
+| Product liability      | Supplier responsibilities, warranty and safety                                            |
+| Logistics              | Partner contracts, transport responsibility and insurance                                 |
+| Employment/contracting | Independent partner classification and contractual obligations                            |
+| Cybersecurity          | Access, encryption, retention and incident response                                       |
+
+These areas need review by Indian legal, tax and payments professionals against the actual operating structure.
+
+## 8.3 Supplier verification
+
+Collect and verify relevant:
+
+- Business registration.
+- PAN and GST details where applicable.
+- Business address.
+- Authorised signatory.
+- Bank account.
+- Category-specific documentation.
+
+Verification must not be marketed as an absolute guarantee of product authenticity.
+
+## 8.4 Authenticity and fitment
+
+Record where available:
+
+- Manufacturer and brand.
+- Part number.
+- Seller identity.
+- Purchase invoice.
+- Batch or serial number.
+- Warranty.
+- Provenance evidence.
+- Product condition.
+
+Do not label a product genuine merely because its supplier is verified.
+
+## 8.5 Platform security
+
+- Role-based permissions.
+- Business data isolation.
+- Encryption at rest and in transit.
+- Secure document storage.
+- Audit trails.
+- Backups.
+- Rate limits.
+- Incident response.
+- Retention and deletion rules.
+- Staff-level permissions.
+
+# 9. Technical development blueprint
+
+## 9.1 Recommended technology stack
+
+| Layer           | Recommended technology                     |
+| --------------- | ------------------------------------------ |
+| Web frontend    | Next.js + React                            |
+| Mobile app      | React Native                               |
+| Backend         | Node.js + NestJS                           |
+| Database        | PostgreSQL                                 |
+| Cache           | Redis                                      |
+| Background jobs | Redis-based queues                         |
+| File storage    | S3-compatible object storage               |
+| Search          | PostgreSQL initially, OpenSearch later     |
+| Maps/routing    | Suitable mapping and routing APIs          |
+| Notifications   | WhatsApp Business API, SMS, email and push |
+| Payments        | Appropriate Indian payment provider        |
+| Hosting         | AWS or equivalent cloud infrastructure     |
+
+Start with a modular monolith, not microservices. Split services only when traffic, team structure and operational complexity justify it.
+
+## 9.2 Main backend modules
+
+1. Identity and access.
+2. Business accounts.
+3. Catalogue.
+4. Vehicle compatibility.
+5. Supplier inventory.
+6. Sourcing and RFQs.
+7. Marketplace orders.
+8. Inter-supplier commerce.
+9. Reservations.
+10. Logistics.
+11. Payments.
+12. Commission and settlements.
+13. Returns and disputes.
+14. Notifications.
+15. Admin and audit.
+
+## 9.3 Database architecture
+
+The following is the proposed foundational schema.
+
+| Domain       | Core tables                                                                           |
+| ------------ | ------------------------------------------------------------------------------------- |
+| Identity     | users, businesses, business_members, roles, permissions                               |
+| Verification | addresses, verification_documents                                                     |
+| Vehicles     | vehicle_makes, vehicle_models, vehicle_variants                                       |
+| Catalogue    | brands, product_categories, master_products, product_fitments, cross_references       |
+| Inventory    | supplier_products, inventory_records, inventory_movements                             |
+| Procurement  | sourcing_requests, sourcing_request_targets, quotations, quotation_items              |
+| Commerce     | carts, cart_items, checkouts, orders, order_items                                     |
+| Invoicing    | invoices, invoice_items                                                               |
+| Payments     | payment_transactions, payment_allocations, refunds                                    |
+| Commission   | commission_rules, overrides, calculations, reversals                                  |
+| Ledger       | financial_ledger, settlement_batches, settlement_allocations                          |
+| Logistics    | logistics_partners, partner_vehicles, delivery_quotes, delivery_routes, delivery_legs |
+| Reservations | stock_reservations, reservation_items, partner_reservations                           |
+| SLA          | delivery_eligibility_checks, order_sla_records                                        |
+| Tracking     | shipment_events, handover_records, proof_of_delivery                                  |
+| Trust        | reviews, returns, disputes, support_tickets                                           |
+| Security     | audit_logs, notifications                                                             |
+
+### Important database principles
+
+- Use stable IDs.
+- Preserve transaction history.
+- Use idempotency for payment and order operations.
+- Prevent overselling through atomic stock reservations.
+- Store timestamps consistently.
+- Maintain immutable financial history.
+- Version commission rules.
+- Enforce business-level data access.
+
+## 9.4 Core API groups
+
+Example API structure:
+
+```
+/api/v1/auth
+/api/v1/users
+/api/v1/businesses
+/api/v1/vehicles
+/api/v1/catalogue
+/api/v1/products
+/api/v1/suppliers
+/api/v1/inventory
+/api/v1/search
+/api/v1/rfqs
+/api/v1/quotations
+/api/v1/carts
+/api/v1/checkouts
+/api/v1/reservations
+/api/v1/orders
+/api/v1/payments
+/api/v1/refunds
+/api/v1/commissions
+/api/v1/settlements
+/api/v1/logistics
+/api/v1/partners
+/api/v1/tracking
+/api/v1/returns
+/api/v1/disputes
+/api/v1/admin
+```
+
+Example operations:
+
+```
+POST /api/v1/reservations
+POST /api/v1/checkouts/eligibility
+POST /api/v1/checkouts/confirm
+POST /api/v1/orders/{id}/accept
+POST /api/v1/logistics/allocate
+GET  /api/v1/orders/{id}/tracking
+POST /api/v1/rfqs
+POST /api/v1/quotations
+GET  /api/v1/suppliers/nearby
+```
+
+All endpoints must enforce authentication, business permissions, validation and transaction integrity.
+
+# 10. Complete transaction architecture
+
+This is the technical and operational relationship between the four pillars.
+
+## Unified transaction architecture
+
+Buyer marketplace
+
+Search, RFQ, checkout and payment
+
+Commerce and reservation engine
+
+Stock confirmation, seller orders and transaction creation
+
+Supplier OS
+
+Inventory and fulfilment
+
+Supply network
+
+Wholesale and sourcing
+
+Network-first logistics engine
+
+Supplier discovery, partner allocation, route validation and tracking
+
+Delivery completion and financial settlement
+
+Admin control centre
+
+Monitors all modules, transactions, fees, risk and operations.
+
+# 11. Business operations
+
+## 11.1 Supplier onboarding process
+
+1. Supplier registers.
+2. Business details are collected.
+3. Documents are submitted.
+4. ASN verifies the business.
+5. Supplier creates its profile.
+6. Supplier uploads inventory.
+7. Products are mapped to the master catalogue.
+8. Visibility is configured.
+9. Supplier begins receiving marketplace orders and sourcing requests.
+
+## 11.2 Logistics partner onboarding
+
+1. Partner registers.
+2. Business/person and vehicle information is submitted.
+3. Verification and relevant insurance/document checks.
+4. Service areas are configured.
+5. Pricing and capacity are configured.
+6. Partner is activated.
+7. Test assignments are completed.
+8. Partner starts receiving eligible delivery assignments.
+
+## 11.3 Buyer acquisition
+
+Initial focus should be independent garages and workshops.
+
+Potential acquisition methods:
+
+- Direct garage visits.
+- Distributor introductions.
+- Workshop associations.
+- Local automotive business communities.
+- Referral programme.
+- Digital acquisition.
+- Fleet operator outreach.
+
+The strongest initial acquisition proposition is reducing the time and effort required to locate and source parts.
+
+## 11.4 Operations team
+
+Initial roles:
+
+| Role                  | Responsibility                        |
+| --------------------- | ------------------------------------- |
+| Founder/business lead | Strategy and partnerships             |
+| Supplier onboarding   | Supplier acquisition and verification |
+| Catalogue operations  | Product mapping and quality           |
+| Logistics operations  | Partner coordination                  |
+| Buyer support         | Orders and disputes                   |
+| Finance               | Reconciliation and settlements        |
+| Technical team        | Product, infrastructure and security  |
+
+Some responsibilities can be combined initially, with segregation for sensitive financial approvals.
+
+# 12. Revenue and financial planning
+
+## 12.1 Main revenue drivers
+
+- B2B marketplace GMV.
+- B2C marketplace GMV.
+- Supplier-to-supplier GMV.
+- Delivery volume and coordination margin.
+- Future optional premium services.
+
+Do not introduce mandatory Supplier OS subscriptions in the initial model.
+
+## 12.2 Financial model structure
+
+The business should be forecast using separate revenue streams.
+
+\\[ \text{Platform Revenue} = R\_{\text{B2B}}+ R\_{\text{B2C}}+ R\_{\text{Wholesale}}+ R\_{\text{Logistics}} \\]
+
+Contribution:
+
+\\[ \text{Contribution} = \text{Platform Revenue} - \text{Variable Costs} \\]
+
+Variable costs include:
+
+- Payment processing.
+- Refund and dispute losses.
+- Customer support per order.
+- Logistics subsidies, if any.
+- Incentives.
+- Variable cloud and communication costs.
+
+Fixed costs include:
+
+- Employees.
+- Development.
+- Hosting baseline.
+- Legal and compliance.
+- Office and administration.
+- Marketing overhead.
+
+## 12.3 Scenario model
+
+The following is an illustrative planning framework, not a forecast or a claim of achievable market share.
+
+| Metric               | Pilot    | Early expansion | Growth      |
+| -------------------- | -------- | --------------- | ----------- |
+| Active suppliers     | 20       | 100             | 500         |
+| Active garage buyers | 30       | 500             | 3,000       |
+| Orders/day           | 20       | 200             | 1,500       |
+| Average order value  | ₹2,000   | ₹2,500          | ₹3,000      |
+| Monthly GMV          | ₹12 lakh | ₹1.5 crore      | ₹13.5 crore |
+
+Monthly GMV is calculated using 30 days. It is not platform revenue.
+
+Before using these numbers in an investor presentation, validate supplier capacity, customer demand, category economics, repeat purchase frequency and delivery unit economics.
+
+## 12.4 Unit economics dashboard
+
+Track:
+
+- GMV per order.
+- Parts commission.
+- Delivery revenue.
+- Partner payout.
+- Payment processing.
+- Refund costs.
+- Support costs.
+- Acquisition cost.
+- Contribution per order.
+- Repeat purchase rate.
+
+The platform should not chase GMV at the expense of negative contribution economics.
+
+# 13. Launch and expansion strategy
+
+## 13.1 Initial launch: Mumbai
+
+Start with one concentrated cluster, not all of Mumbai.
+
+The objective is to build supplier and delivery density before expanding geographically.
+
+### Proposed pilot composition
+
+| Participant            | Target                                     |
+| ---------------------- | ------------------------------------------ |
+| Suppliers/distributors | 15–20                                      |
+| Independent garages    | 20–30                                      |
+| Fleet/workshop buyers  | 5                                          |
+| Delivery partners      | Based on vehicle and coverage requirements |
+
+These are onboarding targets, not confirmed participants.
+
+## 13.2 Initial catalogue strategy
+
+Support all three vehicle segments in the architecture, but start with manageable categories.
+
+Prioritise common, frequently purchased products with reliable part identification and reasonable handling requirements.
+
+Do not attempt to catalogue every automotive component before launch.
+
+## 13.3 Expansion sequence
+
+1. Phase 1 — Mumbai pilot
+
+   Validate suppliers, stock, order workflows and delivery operations.
+2. Phase 2 — Mumbai expansion
+
+   Increase supplier density and add adjacent service areas.
+3. Phase 3 — Other metropolitan markets
+
+   Enter markets where supplier and delivery partner acquisition can support the operating model.
+4. Phase 4 — Regional network
+
+   Build cross-city wholesale sourcing and broader distribution capabilities.
+5. Phase 5 — National infrastructure
+
+   Scale supplier integrations, fleet procurement, APIs and advanced catalogue intelligence.
+
+# 14. Development roadmap
+
+A 16-week MVP is a planning target, subject to team size, catalogue scope, integration complexity and testing.
+
+## Development stages
+
+Weeks 1–4
+
+Foundation
+
+- Architecture and database.
+- Authentication.
+- Business accounts and roles.
+- Supplier onboarding.
+- Master catalogue.
+- Initial inventory.
+
+Weeks 5–7
+
+Supplier OS
+
+- Inventory updates.
+- Bulk upload.
+- Supplier dashboard.
+- Orders and quotations.
+- Stock reservation.
+
+Weeks 8–10
+
+Marketplace
+
+- Buyer homepage.
+- Vehicle selection.
+- Product search.
+- Product comparison.
+- RFQ and checkout.
+
+Weeks 11–12
+
+Network logistics
+
+- Partner onboarding.
+- Service areas.
+- Partner availability.
+- Route and ETA calculation.
+- Network-first matching.
+
+Weeks 13–14
+
+Payments and delivery
+
+- 60-minute eligibility.
+- Payment integration.
+- Order confirmation.
+- Dispatch and tracking.
+- Commission calculations.
+
+Weeks 15–16
+
+Pilot preparation
+
+- Multi-supplier workflows.
+- Multi-partner delivery.
+- Reconciliation.
+- Security and load testing.
+- Controlled pilot.
+
+## 14.1 MVP versus later releases
+
+| Capability                 | MVP   | Later    |
+| -------------------------- | ----- | -------- |
+| Buyer marketplace          |       |          |
+| Supplier OS                |       |          |
+| Inventory and RFQ          |       |          |
+| Network-first availability |       |          |
+| 60-minute eligibility      |       |          |
+| Basic logistics allocation |       |          |
+| Commission engine          |       |          |
+| Supplier wholesale network | Basic | Advanced |
+| Multi-partner optimisation | Basic | Advanced |
+| POS integrations           |       |          |
+| Demand forecasting         |       |          |
+| Advanced catalogue AI      |       |          |
+| Fleet procurement tools    |       |          |
+| Third-party APIs           |       |          |
+
+# 15. Testing and acceptance criteria
+
+The developer should not consider the platform complete merely because all screens render.
+
+Every workflow must be tested.
+
+## 15.1 Marketplace testing
+
+- Buyer can search by vehicle and part number.
+- Product fitment is correctly displayed.
+- Buyer can compare suppliers.
+- RFQs reach relevant suppliers.
+- Multi-supplier checkout creates separate seller orders.
+- Invoices and refunds are correctly associated.
+
+## 15.2 Supplier testing
+
+- Supplier can upload stock.
+- Supplier can edit stock and price.
+- Buyer marketplace reflects stock changes.
+- Supplier can accept or reject orders.
+- Concurrent buyers cannot reserve the same last unit.
+
+## 15.3 Logistics testing
+
+- First partner unavailable, alternate partner found.
+- First supplier unavailable, alternate supplier found.
+- Multi-pickup route is correctly evaluated.
+- Multi-partner handover is recorded.
+- Complete predicted ETA over 60 minutes blocks quick checkout.
+- Partner cancellation triggers reassignment.
+- Reservation expiry releases stock and partner holds.
+- Delivery clock starts only after successful payment.
+
+## 15.4 Financial testing
+
+- Commission rules are applied correctly.
+- No duplicate commission is charged.
+- Refunds reverse applicable commissions.
+- Settlement matches seller allocation.
+- Payment webhooks are idempotent.
+- Financial ledger corrections preserve history.
+
+## 15.5 Security testing
+
+- Suppliers cannot access another supplier's private data.
+- Delivery partners see only assigned shipments.
+- Buyers cannot access admin functions.
+- Staff permissions are enforced.
+- Sensitive admin changes are audited.
+- Payment and personal data are protected.
+
+# 16. Performance metrics and KPIs
+
+The platform should measure its operational quality from the beginning.
+
+| KPI                             | What it measures          |
+| ------------------------------- | ------------------------- |
+| Active suppliers                | Supply network growth     |
+| Inventory freshness             | Reliability of stock data |
+| Stock confirmation rate         | Supplier responsiveness   |
+| RFQ response rate               | Sourcing effectiveness    |
+| Time to locate part             | Buyer experience          |
+| Quote-to-order conversion       | Marketplace effectiveness |
+| Repeat order rate               | Customer retention        |
+| Inter-supplier transaction rate | Supply network activity   |
+| Fulfilment success              | Operational reliability   |
+| 60-minute SLA compliance        | Delivery performance      |
+| Delivery cost/order             | Logistics efficiency      |
+| Contribution/order              | Unit economics            |
+| Refund and dispute rate         | Transaction quality       |
+
+The most important early indicators are stock accuracy, repeat orders, supplier response time and delivery reliability.
+
+# 17. Risks and mitigation
+
+| Risk                        | Mitigation                                                    |
+| --------------------------- | ------------------------------------------------------------- |
+| Incorrect stock             | Reservations and confirmation                                 |
+| Wrong part supplied         | Fitment validation and clear product references               |
+| Supplier inactivity         | Network expansion and performance monitoring                  |
+| Partner shortage            | Multiple partner categories and backup allocation             |
+| Unachievable ETA            | Complete route validation and internal buffer                 |
+| Low supplier adoption       | Free basic Supplier OS                                        |
+| Low buyer adoption          | Concentrated garage acquisition                               |
+| Product authenticity issues | Evidence records, seller accountability and dispute processes |
+| Payment issues              | Authorised provider and reconciliation                        |
+| Thin delivery economics     | Cluster density and cost-based pricing                        |
+| Catalogue complexity        | Prioritised category coverage                                 |
+| Excessive development scope | Phased MVP and acceptance criteria                            |
+
+# 18. Long-term business vision
+
+Once the initial marketplace and supplier network are established, ASN can develop into broader automotive aftermarket infrastructure.
+
+Potential future opportunities:
+
+1. Supplier inventory integrations.
+2. Garage procurement management.
+3. Fleet maintenance procurement.
+4. Distributor and manufacturer integrations.
+5. Regional wholesale sourcing.
+6. Automated catalogue and cross-reference intelligence.
+7. Predictive demand and inventory planning.
+8. Business analytics for suppliers.
+9. API-based integrations with workshops and enterprise systems.
+10. More advanced multi-city logistics coordination.
+
+These should be pursued only after the initial network demonstrates repeat transactions and sustainable unit economics.
+
+# 19. Final developer handover requirements
+
+This is the deliverable checklist for the development team.
+
+## Required development deliverables
+
+0 of 21 deliverables checked
+
+0%
+
+Product Requirements Document (PRD)
+
+System architecture diagram
+
+UI/UX design system
+
+Responsive buyer marketplace
+
+Supplier OS
+
+Supply network interface
+
+Logistics partner application
+
+Admin control centre
+
+Database ER diagram and migrations
+
+API documentation
+
+Authentication and permissions
+
+Catalogue and fitment engine
+
+Inventory and reservation engine
+
+Order and RFQ workflows
+
+Network-first logistics engine
+
+60-minute eligibility engine
+
+Commission and settlement engine
+
+Payment integration
+
+Automated test suite
+
+Security and deployment documentation
+
+Operational and administrator manuals
+
+## Final product definition
+
+The final product is one integrated automotive commerce platform with five user experiences:
+
+- Buyer marketplace.
+- Supplier operating system.
+- Supplier wholesale network.
+- Logistics partner application.
+- Admin control centre.
+
+All are powered by one shared catalogue, inventory infrastructure, order engine, commission engine and logistics network.
+
+The platform does not own stock, warehouses or delivery vehicles at launch. It coordinates independent suppliers and logistics providers through a common digital system.
+
+The core competitive proposition is not simply selling automotive parts online. It is connecting fragmented automotive supply, procurement and fulfilment into one coordinated network.
+
+## 20. Immediate execution priorities
+
+I would now give your developer these five priorities in order:
+
+1. Audit and finalise the technical architecture and existing starter code.
+2. Build the database, authentication, business accounts and supplier inventory.
+3. Connect the buyer marketplace to actual supplier listings and RFQs.
+4. Build the reservation, network-first availability and 60-minute logistics engine.
+5. Integrate payments, commissions, settlements and operational administration.
+
+Do not spend months perfecting a visually impressive homepage while the supplier inventory and transaction infrastructure remain disconnected.
+
+The real value of ASN will come from the network operating reliably.
+
+This blueprint should be treated as the master reference. The PRD, technical specifications, database schema, screen designs and developer tasks should all be derived from it, so the product does not drift as development progresses.
+
+The financial rates, participant targets and development timelines in this blueprint are initial planning assumptions and should be validated before investment commitments or production launch.&#x20;

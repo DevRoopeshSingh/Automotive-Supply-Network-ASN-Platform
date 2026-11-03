@@ -1,0 +1,550 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// -----------------------------------------------------------------------------
+// Identity & Multi-Tenant Business
+// -----------------------------------------------------------------------------
+
+enum BusinessType {
+  GARAGE
+  WORKSHOP
+  RETAILER
+  WHOLESALER
+  DISTRIBUTOR
+  MANUFACTURER
+  FLEET_OPERATOR
+  LOGISTICS_PARTNER
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum UserRole {
+  GARAGE_OWNER
+  WORKSHOP_MANAGER
+  FLEET_MANAGER
+  INDIVIDUAL_OWNER
+  SUPPLIER_ADMIN
+  INVENTORY_MANAGER
+  FULFILLMENT_STAFF
+  WHOLESALE_TRADER
+  DELIVERY_PARTNER
+  FLEET_DISPATCHER
+  SUPER_ADMIN
+  CATALOG_SPECIALIST
+  DISPATCH_CONTROLLER
+  FINANCE_CONTROLLER
+}
+
+model User {
+  id              String           @id @default(uuid()) @db.Uuid
+  phone           String           @unique
+  email           String?          @unique
+  firstName       String           @map("first_name")
+  lastName        String           @map("last_name")
+  isActive        Boolean          @default(true) @map("is_active")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  memberships     BusinessMember[]
+  carts           Cart[]
+  auditLogs       AuditLog[]
+
+  @@map("users")
+}
+
+model Business {
+  id                 String             @id @default(uuid()) @db.Uuid
+  legalName          String             @map("legal_name")
+  tradeName          String             @map("trade_name")
+  businessType       BusinessType       @map("business_type")
+  gstNumber          String?            @unique @map("gst_number")
+  panNumber          String?            @map("pan_number")
+  verificationStatus VerificationStatus @default(PENDING) @map("verification_status")
+  isActive           Boolean            @default(true) @map("is_active")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  members            BusinessMember[]
+  addresses          Address[]
+  documents          VerificationDocument[]
+  supplierProducts   SupplierProduct[]
+  supplierOrders     Order[]            @relation("SupplierOrders")
+  buyerOrders        Order[]            @relation("BuyerOrders")
+  ledgerEntries      FinancialLedger[]
+
+  @@map("businesses")
+}
+
+model BusinessMember {
+  id         String     @id @default(uuid()) @db.Uuid
+  userId     String     @map("user_id") @db.Uuid
+  businessId String     @map("business_id") @db.Uuid
+  role       UserRole   @default(SUPPLIER_ADMIN)
+  isPrimary  Boolean    @default(false) @map("is_primary")
+  createdAt  DateTime   @default(now()) @map("created_at")
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  business   Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, businessId])
+  @@map("business_members")
+}
+
+model Address {
+  id           String    @id @default(uuid()) @db.Uuid
+  businessId   String    @map("business_id") @db.Uuid
+  addressLine1 String    @map("address_line1")
+  addressLine2 String?   @map("address_line2")
+  city         String
+  state        String
+  postalCode   String    @map("postal_code")
+  latitude     Float?
+  longitude    Float?
+  isDefault    Boolean   @default(false) @map("is_default")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  business     Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("addresses")
+}
+
+model VerificationDocument {
+  id           String    @id @default(uuid()) @db.Uuid
+  businessId   String    @map("business_id") @db.Uuid
+  documentType String    @map("document_type") // GST_CERT, PAN, TRADE_LICENSE
+  fileUrl      String    @map("file_url")
+  verifiedAt   DateTime? @map("verified_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  business     Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@map("verification_documents")
+}
+
+// -----------------------------------------------------------------------------
+// Vehicles & Vehicle Fitment Hierarchy
+// -----------------------------------------------------------------------------
+
+enum VehicleSegment {
+  CAR
+  TWO_WHEELER
+  COMMERCIAL_VEHICLE
+}
+
+model VehicleMake {
+  id        String         @id @default(uuid()) @db.Uuid
+  name      String         @unique // e.g., Hyundai, Maruti Suzuki, Tata
+  segment   VehicleSegment
+  createdAt DateTime       @default(now()) @map("created_at")
+
+  models    VehicleModel[]
+
+  @@map("vehicle_makes")
+}
+
+model VehicleModel {
+  id        String           @id @default(uuid()) @db.Uuid
+  makeId    String           @map("make_id") @db.Uuid
+  name      String           // e.g., Creta, Swift, Nexon
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  make      VehicleMake      @relation(fields: [makeId], references: [id], onDelete: Cascade)
+  variants  VehicleVariant[]
+
+  @@unique([makeId, name])
+  @@map("vehicle_models")
+}
+
+model VehicleVariant {
+  id           String           @id @default(uuid()) @db.Uuid
+  modelId      String           @map("model_id") @db.Uuid
+  variantName  String           @map("variant_name") // e.g., 1.5L CRDi SX
+  startYear    Int              @map("start_year")
+  endYear      Int?             @map("end_year")
+  fuelType     String           @map("fuel_type") // DIESEL, PETROL, EV, CNG
+  engine       String?
+  transmission String?          // MANUAL, AUTOMATIC
+  createdAt    DateTime         @default(now()) @map("created_at")
+
+  model        VehicleModel     @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  fitments     ProductFitment[]
+
+  @@map("vehicle_variants")
+}
+
+// -----------------------------------------------------------------------------
+// Master Catalog & Supplier Listings (Hybrid Model)
+// -----------------------------------------------------------------------------
+
+enum ProductCondition {
+  OEM
+  OES
+  AFTERMARKET
+  REFURBISHED
+  USED
+}
+
+model ProductCategory {
+  id          String           @id @default(uuid()) @db.Uuid
+  name        String           @unique // e.g., Braking, Filtration, Suspension
+  slug        String           @unique
+  parentId    String?          @map("parent_id") @db.Uuid
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  parent      ProductCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children    ProductCategory[] @relation("CategoryHierarchy")
+  products    MasterProduct[]
+
+  @@map("product_categories")
+}
+
+model Brand {
+  id          String          @id @default(uuid()) @db.Uuid
+  name        String          @unique // e.g., Bosch, Valeo, Brembo, Monroe
+  isOem       Boolean         @default(false) @map("is_oem")
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  products    MasterProduct[]
+
+  @@map("brands")
+}
+
+model MasterProduct {
+  id                String           @id @default(uuid()) @db.Uuid
+  partNumber        String           @map("part_number")
+  oemNumber         String?          @map("oem_number")
+  brandId           String           @map("brand_id") @db.Uuid
+  categoryId        String           @map("category_id") @db.Uuid
+  name              String
+  description       String?
+  specifications    Json             @default("{}")
+  conditionType     ProductCondition @default(AFTERMARKET) @map("condition_type")
+  isSafetyCritical  Boolean          @default(false) @map("is_safety_critical")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  brand             Brand            @relation(fields: [brandId], references: [id])
+  category          ProductCategory  @relation(fields: [categoryId], references: [id])
+  fitments          ProductFitment[]
+  crossReferences   CrossReference[]
+  supplierListings  SupplierProduct[]
+
+  @@unique([partNumber, brandId])
+  @@index([partNumber])
+  @@index([oemNumber])
+  @@map("master_products")
+}
+
+model ProductFitment {
+  id               String         @id @default(uuid()) @db.Uuid
+  masterProductId  String         @map("master_product_id") @db.Uuid
+  vehicleVariantId String         @map("vehicle_variant_id") @db.Uuid
+  isVerified       Boolean        @default(true) @map("is_verified")
+  notes            String?
+  createdAt        DateTime       @default(now()) @map("created_at")
+
+  masterProduct    MasterProduct  @relation(fields: [masterProductId], references: [id], onDelete: Cascade)
+  vehicleVariant   VehicleVariant @relation(fields: [vehicleVariantId], references: [id], onDelete: Cascade)
+
+  @@unique([masterProductId, vehicleVariantId])
+  @@map("product_fitments")
+}
+
+model CrossReference {
+  id              String        @id @default(uuid()) @db.Uuid
+  masterProductId String        @map("master_product_id") @db.Uuid
+  alternatePartNo String        @map("alternate_part_no")
+  brandName       String?       @map("brand_name")
+  isOemEquivalent Boolean       @default(false) @map("is_oem_equivalent")
+
+  masterProduct   MasterProduct @relation(fields: [masterProductId], references: [id], onDelete: Cascade)
+
+  @@map("cross_references")
+}
+
+// -----------------------------------------------------------------------------
+// Supplier Inventory & Stock Control
+// -----------------------------------------------------------------------------
+
+enum StockStatus {
+  IN_STOCK
+  LIMITED
+  ON_REQUEST
+  OUT_OF_STOCK
+  DISCONTINUED
+}
+
+enum StockVisibility {
+  PUBLIC
+  VERIFIED_BUYERS
+  SUPPLIERS_ONLY
+  SELECTED_CUSTOMERS
+  REQUEST_ONLY
+}
+
+model SupplierProduct {
+  id                   String            @id @default(uuid()) @db.Uuid
+  businessId           String            @map("business_id") @db.Uuid
+  masterProductId      String            @map("master_product_id") @db.Uuid
+  supplierSku          String            @map("supplier_sku")
+  sellingPrice         Decimal           @map("selling_price") @db.Decimal(10, 2)
+  availableQuantity    Int               @default(0) @map("available_quantity")
+  stockStatus          StockStatus       @default(IN_STOCK) @map("stock_status")
+  visibility           StockVisibility   @default(PUBLIC)
+  warehouseLocation    String?           @map("warehouse_location")
+  minimumOrderQuantity Int               @default(1) @map("minimum_order_quantity")
+  lastStockUpdate      DateTime          @default(now()) @map("last_stock_update")
+  createdAt            DateTime          @default(now()) @map("created_at")
+  updatedAt            DateTime          @updatedAt @map("updated_at")
+
+  business             Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  masterProduct        MasterProduct     @relation(fields: [masterProductId], references: [id], onDelete: Cascade)
+  movements            InventoryMovement[]
+  cartItems            CartItem[]
+  reservationItems     ReservationItem[]
+  orderItems           OrderItem[]
+
+  @@unique([businessId, supplierSku])
+  @@index([businessId, stockStatus])
+  @@map("supplier_products")
+}
+
+model InventoryMovement {
+  id                String          @id @default(uuid()) @db.Uuid
+  supplierProductId String          @map("supplier_product_id") @db.Uuid
+  changeQuantity    Int             @map("change_quantity") // e.g. -2 for sale, +10 for restock
+  newBalance        Int             @map("new_balance")
+  reason            String          // SALE, RESTOCK, CORRECTION, RESERVATION_HOLD
+  referenceId       String?         @map("reference_id")
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  supplierProduct   SupplierProduct @relation(fields: [supplierProductId], references: [id], onDelete: Cascade)
+
+  @@map("inventory_movements")
+}
+
+// -----------------------------------------------------------------------------
+// Cart, 5-Minute Atomic Reservation & Checkouts
+// -----------------------------------------------------------------------------
+
+model Cart {
+  id        String     @id @default(uuid()) @db.Uuid
+  userId    String     @map("user_id") @db.Uuid
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  id                String          @id @default(uuid()) @db.Uuid
+  cartId            String          @map("cart_id") @db.Uuid
+  supplierProductId String          @map("supplier_product_id") @db.Uuid
+  quantity          Int             @default(1)
+
+  cart              Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  supplierProduct   SupplierProduct @relation(fields: [supplierProductId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, supplierProductId])
+  @@map("cart_items")
+}
+
+enum ReservationStatus {
+  ACTIVE
+  COMMITTED
+  EXPIRED
+  RELEASED
+}
+
+model StockReservation {
+  id         String            @id @default(uuid()) @db.Uuid
+  checkoutId String            @unique @map("checkout_id") @db.Uuid
+  status     ReservationStatus @default(ACTIVE)
+  expiresAt  DateTime          @map("expires_at")
+  createdAt  DateTime          @default(now()) @map("created_at")
+
+  items      ReservationItem[]
+
+  @@index([status, expiresAt])
+  @@map("stock_reservations")
+}
+
+model ReservationItem {
+  id                String           @id @default(uuid()) @db.Uuid
+  reservationId     String           @map("reservation_id") @db.Uuid
+  supplierProductId String           @map("supplier_product_id") @db.Uuid
+  quantity          Int
+
+  reservation       StockReservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  supplierProduct   SupplierProduct  @relation(fields: [supplierProductId], references: [id], onDelete: Cascade)
+
+  @@map("reservation_items")
+}
+
+// -----------------------------------------------------------------------------
+// Orders & Commerce
+// -----------------------------------------------------------------------------
+
+enum OrderStatus {
+  CREATED
+  AWAITING_SUPPLIER_CONFIRMATION
+  RESERVATION_PENDING
+  ELIGIBLE
+  PAYMENT_PENDING
+  CONFIRMED
+  PREPARING
+  READY_FOR_PICKUP
+  DISPATCHED
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+  PARTIALLY_REFUNDED
+  REFUNDED
+  DISPUTED
+}
+
+model Order {
+  id                   String          @id @default(uuid()) @db.Uuid
+  orderNumber          String          @unique @map("order_number")
+  parentCheckoutId     String          @map("parent_checkout_id") @db.Uuid
+  buyerBusinessId      String          @map("buyer_business_id") @db.Uuid
+  supplierBusinessId   String          @map("supplier_business_id") @db.Uuid
+  status               OrderStatus     @default(CREATED)
+  totalPartsAmount     Decimal         @map("total_parts_amount") @db.Decimal(10, 2)
+  deliveryFee          Decimal         @default(0) @map("delivery_fee") @db.Decimal(10, 2)
+  slaDeadline          DateTime?       @map("sla_deadline")
+  createdAt            DateTime        @default(now()) @map("created_at")
+  updatedAt            DateTime        @updatedAt @map("updated_at")
+
+  buyer                Business        @relation("BuyerOrders", fields: [buyerBusinessId], references: [id])
+  supplier             Business        @relation("SupplierOrders", fields: [supplierBusinessId], references: [id])
+  items                OrderItem[]
+  routes               DeliveryRoute[]
+  ledgerEntries        FinancialLedger[]
+
+  @@index([buyerBusinessId])
+  @@index([supplierBusinessId])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id                String          @id @default(uuid()) @db.Uuid
+  orderId           String          @map("order_id") @db.Uuid
+  supplierProductId String          @map("supplier_product_id") @db.Uuid
+  quantity          Int
+  unitPrice         Decimal         @map("unit_price") @db.Decimal(10, 2)
+  totalPrice        Decimal         @map("total_price") @db.Decimal(10, 2)
+
+  order             Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  supplierProduct   SupplierProduct @relation(fields: [supplierProductId], references: [id])
+
+  @@map("order_items")
+}
+
+// -----------------------------------------------------------------------------
+// Logistics & Multi-Leg Delivery Routing
+// -----------------------------------------------------------------------------
+
+enum LegStatus {
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model DeliveryRoute {
+  id               String        @id @default(uuid()) @db.Uuid
+  orderId          String        @map("order_id") @db.Uuid
+  totalDistanceKm  Float?        @map("total_distance_km")
+  estimatedMinutes Int?          @map("estimated_minutes")
+  actualMinutes    Int?          @map("actual_minutes")
+  createdAt        DateTime      @default(now()) @map("created_at")
+
+  order            Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  legs             DeliveryLeg[]
+
+  @@map("delivery_routes")
+}
+
+model DeliveryLeg {
+  id              String      @id @default(uuid()) @db.Uuid
+  routeId         String      @map("route_id") @db.Uuid
+  legSequence     Int         @map("leg_sequence")
+  legType         String      @map("leg_type") // PICKUP, COLLECTION, TRANSFER, LAST_MILE, HANDOVER
+  status          LegStatus   @default(ASSIGNED)
+  pickupAddress   String      @map("pickup_address")
+  dropAddress     String      @map("drop_address")
+  pickupConfirmed Boolean     @default(false) @map("pickup_confirmed")
+  dropConfirmed   Boolean     @default(false) @map("drop_confirmed")
+  createdAt       DateTime    @default(now()) @map("created_at")
+
+  route           DeliveryRoute @relation(fields: [routeId], references: [id], onDelete: Cascade)
+
+  @@map("delivery_legs")
+}
+
+// -----------------------------------------------------------------------------
+// Financial Ledger, Commission & Settlements
+// -----------------------------------------------------------------------------
+
+enum LedgerEntryType {
+  PARTS_SALE
+  PARTS_COMMISSION
+  DELIVERY_FEE
+  LOGISTICS_MARGIN
+  TCS_GST
+  TDS
+  REFUND_DEBIT
+  REFUND_REVERSAL
+}
+
+model FinancialLedger {
+  id             String          @id @default(uuid()) @db.Uuid
+  orderId        String          @map("order_id") @db.Uuid
+  partyBusinessId String         @map("party_business_id") @db.Uuid
+  entryType      LedgerEntryType @map("entry_type")
+  amount         Decimal         @db.Decimal(10, 2)
+  isCredit       Boolean         @map("is_credit") // true = Credit, false = Debit
+  description    String?
+  createdAt      DateTime        @default(now()) @map("created_at")
+
+  order          Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  party          Business        @relation(fields: [partyBusinessId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([partyBusinessId])
+  @@map("financial_ledger")
+}
+
+// -----------------------------------------------------------------------------
+// Audit Logs
+// -----------------------------------------------------------------------------
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  action     String   // e.g. UPDATE_COMMISSION_RULE, CANCEL_ORDER
+  resource   String   // e.g. CommissionRule:123
+  payload    Json?
+  ipAddress  String?  @map("ip_address")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}
+

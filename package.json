@@ -1,0 +1,32 @@
+{
+  "name": "asn-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Automotive Supply Network (ASN) — Master Monorepo Platform",
+  "author": "ASN Engineering Team",
+  "license": "UNLICENSED",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "clean": "turbo clean",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "db:generate": "pnpm --filter @asn/database db:generate",
+    "db:push": "pnpm --filter @asn/database db:push",
+    "db:migrate": "pnpm --filter @asn/database db:migrate",
+    "db:seed": "pnpm --filter @asn/database db:seed"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3",
+    "turbo": "^2.2.3",
+    "typescript": "^5.6.3"
+  },
+  "packageManager": "pnpm@9.12.3",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

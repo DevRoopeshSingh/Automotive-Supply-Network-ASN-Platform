@@ -1,0 +1,16 @@
+{
+  "name": "@asn/logger",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Structured JSON logging for ASN services",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@asn/config": "workspace:*",
+    "@types/node": "^22.9.0",
+    "typescript": "^5.6.3"
+  }
+}
