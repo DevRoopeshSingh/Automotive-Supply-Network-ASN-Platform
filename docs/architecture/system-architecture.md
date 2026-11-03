@@ -114,6 +114,41 @@ flowchart TD
   2. The queried year satisfies any component-specific fitment year overrides.
   3. The mapped fitment is verified (`is_verified = true`) and the product is active.
 
+## 6. Supplier OS, Multi-Warehouse Inventory & Bulk Import Engine
+
+### 6.1 Multi-Warehouse Management & Tenant Isolation
+
+- **`SupplierWarehouse`**: Models physical warehouse facilities operated by a supplier business.
+- Each warehouse is uniquely identified by `code` within the tenant scope (`[business_id, code]`).
+- Supports primary warehouse designation (`is_primary`), geospatial coordinates (`latitude`, `longitude`), and contact metadata.
+- All warehouse and inventory endpoints enforce strict tenant isolation via `TenantContextGuard` and `X-Business-Id`.
+
+### 6.2 Real-Time Stock Control & Non-Negative Guarantees
+
+- **`WarehouseInventory`**: Tracks warehouse-level stock partitions:
+  - `quantity`: Total physical inventory on hand.
+  - `availableQuantity`: Stock free to promise to buyers (`quantity - reservedQuantity - damagedQuantity`).
+  - `reservedQuantity`: Stock held in active cart reservations or pending dispatch.
+  - `damagedQuantity`: Stock quarantined due to transit or warehouse damage.
+- **Atomic Concurrency Protection**:
+  - All stock adjustments execute inside transactional blocks (`prisma.$transaction`).
+  - Negative stock is strictly rejected: adjustments that would cause `quantity < 0` or `availableQuantity < 0` abort with `400 Bad Request`.
+  - Dynamically recalculates `SupplierProduct.availableQuantity` as the aggregate sum across all active warehouses.
+  - Automatically updates `stockStatus` to `OUT_OF_STOCK`, `LOW_STOCK`, or `IN_STOCK`.
+
+### 6.3 Auditable Inventory Movement Ledger
+
+- **`InventoryMovement`**: Every physical adjustment, restock, sale, correction, or import writes an immutable ledger entry.
+- Records `previous_balance`, `new_balance`, signed `change_quantity`, `reason`, `notes`, `user_id`, and `reference_id` (e.g. order ID, PO number, or import job ID).
+
+### 6.4 Staged Bulk CSV/Excel Import Pipeline
+
+- **Four-Stage Ingestion Pipeline**:
+  1. **Upload & Parse**: Accepts CSV content, detects delimiter (comma, semicolon, tab), and normalizes column headers.
+  2. **Intra-File Validation**: Detects duplicate SKUs or duplicate part/brand combinations within the uploaded spreadsheet.
+  3. **Master Catalog Matching**: Looks up each part number against indexed normalized part numbers in `MasterProduct`. Missing parts are flagged with row numbers.
+  4. **Preview & Execution**: Staged in `InventoryImportJob` with status `PREVIEW_READY`. Suppliers review error reports before committing. Executing valid rows commits inventory in atomic batches and logs `BULK_IMPORT` movements, returning `COMPLETED` or `PARTIAL_SUCCESS`.
+
 ---
 
 ## 4. Multi-Tenant Identity, Authentication & Session Security
@@ -173,3 +208,38 @@ flowchart TD
   1. The queried vehicle model year falls within the variant's manufacturing span.
   2. The queried year satisfies any component-specific fitment year overrides.
   3. The mapped fitment is verified (`is_verified = true`) and the product is active.
+
+## 6. Supplier OS, Multi-Warehouse Inventory & Bulk Import Engine
+
+### 6.1 Multi-Warehouse Management & Tenant Isolation
+
+- **`SupplierWarehouse`**: Models physical warehouse facilities operated by a supplier business.
+- Each warehouse is uniquely identified by `code` within the tenant scope (`[business_id, code]`).
+- Supports primary warehouse designation (`is_primary`), geospatial coordinates (`latitude`, `longitude`), and contact metadata.
+- All warehouse and inventory endpoints enforce strict tenant isolation via `TenantContextGuard` and `X-Business-Id`.
+
+### 6.2 Real-Time Stock Control & Non-Negative Guarantees
+
+- **`WarehouseInventory`**: Tracks warehouse-level stock partitions:
+  - `quantity`: Total physical inventory on hand.
+  - `availableQuantity`: Stock free to promise to buyers (`quantity - reservedQuantity - damagedQuantity`).
+  - `reservedQuantity`: Stock held in active cart reservations or pending dispatch.
+  - `damagedQuantity`: Stock quarantined due to transit or warehouse damage.
+- **Atomic Concurrency Protection**:
+  - All stock adjustments execute inside transactional blocks (`prisma.$transaction`).
+  - Negative stock is strictly rejected: adjustments that would cause `quantity < 0` or `availableQuantity < 0` abort with `400 Bad Request`.
+  - Dynamically recalculates `SupplierProduct.availableQuantity` as the aggregate sum across all active warehouses.
+  - Automatically updates `stockStatus` to `OUT_OF_STOCK`, `LOW_STOCK`, or `IN_STOCK`.
+
+### 6.3 Auditable Inventory Movement Ledger
+
+- **`InventoryMovement`**: Every physical adjustment, restock, sale, correction, or import writes an immutable ledger entry.
+- Records `previous_balance`, `new_balance`, signed `change_quantity`, `reason`, `notes`, `user_id`, and `reference_id` (e.g. order ID, PO number, or import job ID).
+
+### 6.4 Staged Bulk CSV/Excel Import Pipeline
+
+- **Four-Stage Ingestion Pipeline**:
+  1. **Upload & Parse**: Accepts CSV content, detects delimiter (comma, semicolon, tab), and normalizes column headers.
+  2. **Intra-File Validation**: Detects duplicate SKUs or duplicate part/brand combinations within the uploaded spreadsheet.
+  3. **Master Catalog Matching**: Looks up each part number against indexed normalized part numbers in `MasterProduct`. Missing parts are flagged with row numbers.
+  4. **Preview & Execution**: Staged in `InventoryImportJob` with status `PREVIEW_READY`. Suppliers review error reports before committing. Executing valid rows commits inventory in atomic batches and logs `BULK_IMPORT` movements, returning `COMPLETED` or `PARTIAL_SUCCESS`.

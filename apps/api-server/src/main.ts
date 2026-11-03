@@ -56,6 +56,10 @@ async function bootstrap() {
       "Catalog & Vehicle Fitment",
       "Automotive product master, category hierarchy, vehicle compatibility engine",
     )
+    .addTag(
+      "Supplier OS — Warehouses & Inventory",
+      "Multi-warehouse inventory, real-time stock control, and bulk catalog import",
+    )
     .addTag("System", "Health and telemetry")
     .build();
 

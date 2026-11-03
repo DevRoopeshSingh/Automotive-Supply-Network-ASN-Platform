@@ -92,3 +92,4 @@ ALTER TABLE "oem_part_references" ADD CONSTRAINT "oem_part_references_vehicle_ma
 -- AddForeignKey
 ALTER TABLE "product_media" DROP CONSTRAINT IF EXISTS "product_media_master_product_id_fkey";
 ALTER TABLE "product_media" ADD CONSTRAINT "product_media_master_product_id_fkey" FOREIGN KEY ("master_product_id") REFERENCES "master_products"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

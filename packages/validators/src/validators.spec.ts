@@ -5,6 +5,9 @@ import {
   CreateStockReservationSchema,
   CreateProductSchema,
   AddFitmentSchema,
+  CreateWarehouseSchema,
+  AdjustInventorySchema,
+  CsvInventoryRowSchema,
 } from "./index";
 import { BusinessType } from "@asn/types";
 
@@ -99,5 +102,65 @@ describe("ASN Validation Schemas", () => {
         "Fitment start year cannot be greater than end year",
       );
     }
+  });
+
+  it("should validate warehouse creation schema with valid Indian PIN code", () => {
+    const valid = CreateWarehouseSchema.safeParse({
+      name: "Mayapuri Central Depot",
+      code: "WH-DEL-01",
+      addressLine1: "Plot 42, Mayapuri Phase II",
+      city: "New Delhi",
+      state: "Delhi",
+      postalCode: "110064",
+    });
+    expect(valid.success).toBe(true);
+
+    const invalidPin = CreateWarehouseSchema.safeParse({
+      name: "Mayapuri Central Depot",
+      code: "WH-DEL-01",
+      addressLine1: "Plot 42, Mayapuri Phase II",
+      city: "New Delhi",
+      state: "Delhi",
+      postalCode: "010064", // Invalid first digit
+    });
+    expect(invalidPin.success).toBe(false);
+  });
+
+  it("should validate inventory adjustment input with non-zero change", () => {
+    const validRestock = AdjustInventorySchema.safeParse({
+      warehouseId: "123e4567-e89b-12d3-a456-426614174000",
+      supplierProductId: "123e4567-e89b-12d3-a456-426614174001",
+      changeQuantity: 25,
+      reason: "RESTOCK",
+    });
+    expect(validRestock.success).toBe(true);
+
+    const invalidZero = AdjustInventorySchema.safeParse({
+      warehouseId: "123e4567-e89b-12d3-a456-426614174000",
+      supplierProductId: "123e4567-e89b-12d3-a456-426614174001",
+      changeQuantity: 0,
+      reason: "RESTOCK",
+    });
+    expect(invalidZero.success).toBe(false);
+  });
+
+  it("should validate CSV row items with positive price and non-negative quantity", () => {
+    const validRow = CsvInventoryRowSchema.safeParse({
+      sku: "BOSCH-PAD-01",
+      partNumber: "0 986 AB1 234",
+      brandName: "Bosch",
+      quantity: 50,
+      price: 1850.5,
+    });
+    expect(validRow.success).toBe(true);
+
+    const invalidRow = CsvInventoryRowSchema.safeParse({
+      sku: "BOSCH-PAD-01",
+      partNumber: "0 986 AB1 234",
+      brandName: "Bosch",
+      quantity: -5,
+      price: -100,
+    });
+    expect(invalidRow.success).toBe(false);
   });
 });

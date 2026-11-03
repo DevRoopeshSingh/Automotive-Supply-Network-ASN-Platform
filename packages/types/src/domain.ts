@@ -119,10 +119,22 @@ export enum MediaType {
 
 export enum StockStatus {
   IN_STOCK = "IN_STOCK",
+  LOW_STOCK = "LOW_STOCK",
   LIMITED = "LIMITED",
   ON_REQUEST = "ON_REQUEST",
   OUT_OF_STOCK = "OUT_OF_STOCK",
+  INACTIVE = "INACTIVE",
   DISCONTINUED = "DISCONTINUED",
+}
+
+export enum ImportJobStatus {
+  PENDING = "PENDING",
+  PARSING = "PARSING",
+  PREVIEW_READY = "PREVIEW_READY",
+  PROCESSING = "PROCESSING",
+  COMPLETED = "COMPLETED",
+  PARTIAL_SUCCESS = "PARTIAL_SUCCESS",
+  FAILED = "FAILED",
 }
 
 export enum StockVisibility {
@@ -372,4 +384,114 @@ export interface VehicleCompatibilityResult {
   queryYear?: number;
   compatibleProductsCount: number;
   products: ProductMasterSummary[];
+}
+
+// -----------------------------------------------------------------------------
+// Supplier OS & Multi-Warehouse Inventory DTOs
+// -----------------------------------------------------------------------------
+
+export interface SupplierWarehouseDto {
+  id: string;
+  businessId: string;
+  name: string;
+  code: string;
+  addressLine1: string;
+  addressLine2?: string | null;
+  city: string;
+  state: string;
+  postalCode: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  contactPhone?: string | null;
+  contactEmail?: string | null;
+  isPrimary: boolean;
+  isActive: boolean;
+  inventoryCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SupplierProductSummaryDto {
+  id: string;
+  businessId: string;
+  masterProductId: string;
+  supplierSku: string;
+  sellingPrice: number;
+  mrp?: number | null;
+  costPrice?: number | null;
+  availableQuantity: number;
+  reservedQuantity: number;
+  stockStatus: StockStatus;
+  visibility: StockVisibility;
+  minimumOrderQuantity: number;
+  leadTimeDays: number;
+  masterProduct: {
+    id: string;
+    name: string;
+    partNumber: string;
+    normalizedPartNumber: string;
+    brandName: string;
+    categoryName: string;
+  };
+  warehouseStockCount: number;
+  lastStockUpdate: string;
+}
+
+export interface WarehouseInventoryDto {
+  id: string;
+  warehouseId: string;
+  warehouseName: string;
+  warehouseCode: string;
+  supplierProductId: string;
+  supplierSku: string;
+  binLocation?: string | null;
+  quantity: number;
+  availableQuantity: number;
+  reservedQuantity: number;
+  damagedQuantity: number;
+  minStockThreshold: number;
+  reorderLevel: number;
+  reorderQuantity: number;
+  lastStockUpdate: string;
+}
+
+export interface InventoryMovementDto {
+  id: string;
+  supplierProductId: string;
+  warehouseId?: string | null;
+  warehouseName?: string | null;
+  userId?: string | null;
+  changeQuantity: number;
+  previousBalance: number;
+  newBalance: number;
+  reason: string;
+  notes?: string | null;
+  referenceId?: string | null;
+  createdAt: string;
+}
+
+export interface InventoryImportJobSummaryDto {
+  id: string;
+  businessId: string;
+  warehouseId: string;
+  warehouseName?: string;
+  fileName: string;
+  fileType: string;
+  status: ImportJobStatus;
+  totalRows: number;
+  validRows: number;
+  errorRows: number;
+  processedRows: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InventoryImportJobDetailDto extends InventoryImportJobSummaryDto {
+  metadata: Record<string, unknown>;
+  errorReport: Array<{
+    row: number;
+    sku?: string;
+    error: string;
+    data?: Record<string, unknown>;
+  }>;
 }

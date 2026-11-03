@@ -207,3 +207,109 @@ curl -X POST http://localhost:4000/api/v1/catalog/products \
     }
   }'
 ```
+
+## 7. Testing Supplier OS — Warehouses, Inventory & Bulk Import
+
+All supplier endpoints require authentication headers:
+
+- `Authorization: Bearer <ACCESS_TOKEN>`
+- `X-Business-Id: <SUPPLIER_BUSINESS_ID>`
+
+### 7.1 Warehouse Operations
+
+```bash
+# 1. Create a supplier warehouse
+curl -X POST http://localhost:4000/api/v1/supplier/warehouses \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "X-Business-Id: <SUPPLIER_BUSINESS_ID>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Mayapuri Central Depot",
+    "code": "WH-DEL-01",
+    "addressLine1": "Plot 42, Mayapuri Phase II",
+    "city": "New Delhi",
+    "state": "Delhi",
+    "postalCode": "110064",
+    "isPrimary": true
+  }'
+
+# 2. List supplier warehouses
+curl -X GET http://localhost:4000/api/v1/supplier/warehouses \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "X-Business-Id: <SUPPLIER_BUSINESS_ID>"
+```
+
+### 7.2 Supplier Product Listings & Warehouse Stock
+
+```bash
+# 1. Create a supplier listing linked to MasterProduct
+curl -X POST http://localhost:4000/api/v1/supplier/listings \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "X-Business-Id: <SUPPLIER_BUSINESS_ID>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "masterProductId": "<MASTER_PRODUCT_ID>",
+    "supplierSku": "BOSCH-PAD-CR-01",
+    "sellingPrice": 1850.00,
+    "mrp": 2200.00,
+    "warehouseId": "<WAREHOUSE_ID>",
+    "initialStock": 25,
+    "binLocation": "A-12-01"
+  }'
+
+# 2. Query warehouse inventory levels
+curl -X GET "http://localhost:4000/api/v1/supplier/inventory?warehouseId=<WAREHOUSE_ID>&page=1&limit=20" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "X-Business-Id: <SUPPLIER_BUSINESS_ID>"
+```
+
+### 7.3 Atomic Stock Adjustments (Negative Stock Prevention)
+
+```bash
+# Restock +15 units (creates movement with reason RESTOCK)
+curl -X POST http://localhost:4000/api/v1/supplier/inventory/adjust \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "X-Business-Id: <SUPPLIER_BUSINESS_ID>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "warehouseId": "<WAREHOUSE_ID>",
+    "supplierProductId": "<SUPPLIER_PRODUCT_ID>",
+    "changeQuantity": 15,
+    "reason": "RESTOCK",
+    "notes": "PO-2026-881 received"
+  }'
+
+# View chronological movement ledger for a product
+curl -X GET "http://localhost:4000/api/v1/supplier/inventory/movements/<SUPPLIER_PRODUCT_ID>" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "X-Business-Id: <SUPPLIER_BUSINESS_ID>"
+```
+
+### 7.4 Staged Bulk CSV Import Pipeline
+
+```bash
+# 1. Upload CSV to generate staged validation preview
+curl -X POST http://localhost:4000/api/v1/supplier/inventory/import/preview \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "X-Business-Id: <SUPPLIER_BUSINESS_ID>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "warehouseId": "<WAREHOUSE_ID>",
+    "fileName": "batch_mayapuri_stock.csv",
+    "csvContent": "SKU,Part Number,Brand,Quantity,Price\nBOSCH-PAD-01,0 986 AB1 234,Bosch,50,1850.00\nMAHLE-OC501,OC 501,Mahle,100,420.00"
+  }'
+
+# 2. Check import job report
+curl -X GET "http://localhost:4000/api/v1/supplier/inventory/import/<JOB_ID>" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "X-Business-Id: <SUPPLIER_BUSINESS_ID>"
+
+# 3. Execute valid rows into live inventory
+curl -X POST http://localhost:4000/api/v1/supplier/inventory/import/execute \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "X-Business-Id: <SUPPLIER_BUSINESS_ID>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jobId": "<JOB_ID>"
+  }'
+```

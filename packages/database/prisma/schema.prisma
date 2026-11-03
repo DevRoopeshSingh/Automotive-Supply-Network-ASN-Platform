@@ -71,6 +71,7 @@ model User {
   sentInvitations BusinessInvitation[] @relation("SentInvitations")
   carts           Cart[]
   auditLogs       AuditLog[]
+  inventoryMovements InventoryMovement[]
 
   @@map("users")
 }
@@ -91,7 +92,9 @@ model Business {
   invitations        BusinessInvitation[]
   addresses          Address[]
   documents          VerificationDocument[]
+  warehouses         SupplierWarehouse[]
   supplierProducts   SupplierProduct[]
+  inventoryImportJobs InventoryImportJob[]
   supplierOrders     Order[]              @relation("SupplierOrders")
   buyerOrders        Order[]              @relation("BuyerOrders")
   ledgerEntries      FinancialLedger[]
@@ -428,14 +431,16 @@ model CrossReference {
 }
 
 // -----------------------------------------------------------------------------
-// Supplier Inventory & Stock Control
+// Supplier Inventory & Multi-Warehouse Stock Control
 // -----------------------------------------------------------------------------
 
 enum StockStatus {
   IN_STOCK
+  LOW_STOCK
   LIMITED
   ON_REQUEST
   OUT_OF_STOCK
+  INACTIVE
   DISCONTINUED
 }
 
@@ -447,45 +452,174 @@ enum StockVisibility {
   REQUEST_ONLY
 }
 
-model SupplierProduct {
-  id                   String            @id @default(uuid()) @db.Uuid
-  businessId           String            @map("business_id") @db.Uuid
-  masterProductId      String            @map("master_product_id") @db.Uuid
-  supplierSku          String            @map("supplier_sku")
-  sellingPrice         Decimal           @map("selling_price") @db.Decimal(10, 2)
-  availableQuantity    Int               @default(0) @map("available_quantity")
-  stockStatus          StockStatus       @default(IN_STOCK) @map("stock_status")
-  visibility           StockVisibility   @default(PUBLIC)
-  warehouseLocation    String?           @map("warehouse_location")
-  minimumOrderQuantity Int               @default(1) @map("minimum_order_quantity")
-  lastStockUpdate      DateTime          @default(now()) @map("last_stock_update")
-  createdAt            DateTime          @default(now()) @map("created_at")
-  updatedAt            DateTime          @updatedAt @map("updated_at")
+enum ImportJobStatus {
+  PENDING
+  PARSING
+  PREVIEW_READY
+  PROCESSING
+  COMPLETED
+  PARTIAL_SUCCESS
+  FAILED
+}
 
-  business             Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  masterProduct        MasterProduct     @relation(fields: [masterProductId], references: [id], onDelete: Cascade)
+model SupplierWarehouse {
+  id           String               @id @default(uuid()) @db.Uuid
+  businessId   String               @map("business_id") @db.Uuid
+  name         String
+  code         String               // e.g., "DEL-01", "MAYAPURI-HUB"
+  addressLine1 String               @map("address_line1")
+  addressLine2 String?              @map("address_line2")
+  city         String
+  state        String
+  postalCode   String               @map("postal_code")
+  latitude     Float?
+  longitude    Float?
+  contactPhone String?              @map("contact_phone")
+  contactEmail String?              @map("contact_email")
+  isPrimary    Boolean              @default(false) @map("is_primary")
+  isActive     Boolean              @default(true) @map("is_active")
+  createdAt    DateTime             @default(now()) @map("created_at")
+  updatedAt    DateTime             @updatedAt @map("updated_at")
+
+  business     Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  inventories  WarehouseInventory[]
+  movements    InventoryMovement[]
+  importJobs   InventoryImportJob[]
+
+  @@unique([businessId, code])
+  @@index([businessId, isActive])
+  @@map("supplier_warehouses")
+}
+
+model SupplierProduct {
+  id                   String               @id @default(uuid()) @db.Uuid
+  businessId           String               @map("business_id") @db.Uuid
+  masterProductId      String               @map("master_product_id") @db.Uuid
+  supplierSku          String               @map("supplier_sku")
+  sellingPrice         Decimal              @map("selling_price") @db.Decimal(10, 2)
+  mrp                  Decimal?             @db.Decimal(10, 2)
+  costPrice            Decimal?             @map("cost_price") @db.Decimal(10, 2)
+  availableQuantity    Int                  @default(0) @map("available_quantity")
+  reservedQuantity     Int                  @default(0) @map("reserved_quantity")
+  stockStatus          StockStatus          @default(IN_STOCK) @map("stock_status")
+  visibility           StockVisibility      @default(PUBLIC)
+  warehouseLocation    String?              @map("warehouse_location")
+  minimumOrderQuantity Int                  @default(1) @map("minimum_order_quantity")
+  leadTimeDays         Int                  @default(1) @map("lead_time_days")
+  lastStockUpdate      DateTime             @default(now()) @map("last_stock_update")
+  createdAt            DateTime             @default(now()) @map("created_at")
+  updatedAt            DateTime             @updatedAt @map("updated_at")
+
+  business             Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  masterProduct        MasterProduct        @relation(fields: [masterProductId], references: [id], onDelete: Cascade)
+  warehouseInventories WarehouseInventory[]
   movements            InventoryMovement[]
   cartItems            CartItem[]
   reservationItems     ReservationItem[]
   orderItems           OrderItem[]
 
   @@unique([businessId, supplierSku])
+  @@unique([businessId, masterProductId])
   @@index([businessId, stockStatus])
+  @@index([masterProductId])
   @@map("supplier_products")
 }
 
+model WarehouseInventory {
+  id                String            @id @default(uuid()) @db.Uuid
+  warehouseId       String            @map("warehouse_id") @db.Uuid
+  supplierProductId String            @map("supplier_product_id") @db.Uuid
+  binLocation       String?           @map("bin_location")
+  quantity          Int               @default(0) // Physical count on hand
+  availableQuantity Int               @default(0) @map("available_quantity") // Free to promise
+  reservedQuantity  Int               @default(0) @map("reserved_quantity")
+  damagedQuantity   Int               @default(0) @map("damaged_quantity")
+  minStockThreshold Int               @default(5) @map("min_stock_threshold")
+  reorderLevel      Int               @default(10) @map("reorder_level")
+  reorderQuantity   Int               @default(20) @map("reorder_quantity")
+  lastStockUpdate   DateTime          @default(now()) @map("last_stock_update")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  warehouse         SupplierWarehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  supplierProduct   SupplierProduct   @relation(fields: [supplierProductId], references: [id], onDelete: Cascade)
+  movements         InventoryMovement[]
+
+  @@unique([warehouseId, supplierProductId])
+  @@index([warehouseId, availableQuantity])
+  @@index([supplierProductId])
+  @@map("warehouse_inventories")
+}
+
 model InventoryMovement {
-  id                String          @id @default(uuid()) @db.Uuid
-  supplierProductId String          @map("supplier_product_id") @db.Uuid
-  changeQuantity    Int             @map("change_quantity") // e.g. -2 for sale, +10 for restock
-  newBalance        Int             @map("new_balance")
-  reason            String          // SALE, RESTOCK, CORRECTION, RESERVATION_HOLD
-  referenceId       String?         @map("reference_id")
-  createdAt         DateTime        @default(now()) @map("created_at")
+  id                   String              @id @default(uuid()) @db.Uuid
+  warehouseInventoryId String?             @map("warehouse_inventory_id") @db.Uuid
+  warehouseId          String?             @map("warehouse_id") @db.Uuid
+  supplierProductId    String              @map("supplier_product_id") @db.Uuid
+  userId               String?             @map("user_id") @db.Uuid
+  changeQuantity       Int                 @map("change_quantity") // e.g. -2 for sale, +10 for restock
+  previousBalance      Int                 @default(0) @map("previous_balance")
+  newBalance           Int                 @map("new_balance")
+  reason               String              // INITIAL_STOCK, RESTOCK, SALE, CORRECTION, DAMAGED, RETURN_RESTOCK, BULK_IMPORT, RESERVATION_HOLD
+  notes                String?
+  referenceId          String?             @map("reference_id")
+  createdAt            DateTime            @default(now()) @map("created_at")
 
-  supplierProduct   SupplierProduct @relation(fields: [supplierProductId], references: [id], onDelete: Cascade)
+  warehouseInventory   WarehouseInventory? @relation(fields: [warehouseInventoryId], references: [id], onDelete: SetNull)
+  warehouse            SupplierWarehouse?  @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
+  supplierProduct      SupplierProduct     @relation(fields: [supplierProductId], references: [id], onDelete: Cascade)
+  user                 User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
 
+  @@index([supplierProductId, createdAt])
+  @@index([warehouseId, createdAt])
   @@map("inventory_movements")
+}
+
+model InventoryImportJob {
+  id            String               @id @default(uuid()) @db.Uuid
+  businessId    String               @map("business_id") @db.Uuid
+  warehouseId   String               @map("warehouse_id") @db.Uuid
+  userId        String               @map("user_id") @db.Uuid
+  fileName      String               @map("file_name")
+  fileType      String               @default("CSV") @map("file_type")
+  status        ImportJobStatus      @default(PENDING)
+  totalRows     Int                  @default(0) @map("total_rows")
+  validRows     Int                  @default(0) @map("valid_rows")
+  errorRows     Int                  @default(0) @map("error_rows")
+  processedRows Int                  @default(0) @map("processed_rows")
+  metadata      Json                 @default("{}")
+  errorReport   Json                 @default("[]") @map("error_report")
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
+
+  business      Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  warehouse     SupplierWarehouse    @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  rows          InventoryImportRow[]
+
+  @@index([businessId, status])
+  @@map("inventory_import_jobs")
+}
+
+model InventoryImportRow {
+  id          String             @id @default(uuid()) @db.Uuid
+  jobId       String             @map("job_id") @db.Uuid
+  rowNumber   Int                @map("row_number")
+  sku         String
+  partNumber  String             @map("part_number")
+  brandName   String             @map("brand_name")
+  productName String?            @map("product_name")
+  quantity    Int
+  price       Decimal            @db.Decimal(10, 2)
+  minStock    Int?               @map("min_stock")
+  binLocation String?            @map("bin_location")
+  status      String             @default("PENDING") // VALID, INVALID, PROCESSED, FAILED
+  errors      Json               @default("[]")
+  createdAt   DateTime           @default(now()) @map("created_at")
+
+  job         InventoryImportJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId, rowNumber])
+  @@map("inventory_import_rows")
 }
 
 // -----------------------------------------------------------------------------
