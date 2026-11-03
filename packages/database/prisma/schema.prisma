@@ -218,12 +218,15 @@ enum VehicleSegment {
 }
 
 model VehicleMake {
-  id        String         @id @default(uuid()) @db.Uuid
-  name      String         @unique // e.g., Hyundai, Maruti Suzuki, Tata
-  segment   VehicleSegment
-  createdAt DateTime       @default(now()) @map("created_at")
+  id            String             @id @default(uuid()) @db.Uuid
+  name          String             @unique // e.g., Hyundai, Maruti Suzuki, Tata
+  segment       VehicleSegment
+  logoUrl       String?            @map("logo_url")
+  isActive      Boolean            @default(true) @map("is_active")
+  createdAt     DateTime           @default(now()) @map("created_at")
 
-  models    VehicleModel[]
+  models        VehicleModel[]
+  oemReferences OEMPartReference[]
 
   @@map("vehicle_makes")
 }
@@ -232,6 +235,7 @@ model VehicleModel {
   id        String           @id @default(uuid()) @db.Uuid
   makeId    String           @map("make_id") @db.Uuid
   name      String           // e.g., Creta, Swift, Nexon
+  isActive  Boolean          @default(true) @map("is_active")
   createdAt DateTime         @default(now()) @map("created_at")
 
   make      VehicleMake      @relation(fields: [makeId], references: [id], onDelete: Cascade)
@@ -242,19 +246,22 @@ model VehicleModel {
 }
 
 model VehicleVariant {
-  id           String           @id @default(uuid()) @db.Uuid
-  modelId      String           @map("model_id") @db.Uuid
-  variantName  String           @map("variant_name") // e.g., 1.5L CRDi SX
-  startYear    Int              @map("start_year")
-  endYear      Int?             @map("end_year")
-  fuelType     String           @map("fuel_type") // DIESEL, PETROL, EV, CNG
-  engine       String?
-  transmission String?          // MANUAL, AUTOMATIC
-  createdAt    DateTime         @default(now()) @map("created_at")
+  id             String           @id @default(uuid()) @db.Uuid
+  modelId        String           @map("model_id") @db.Uuid
+  variantName    String           @map("variant_name") // e.g., 1.5L CRDi SX
+  startYear      Int              @map("start_year")
+  endYear        Int?             @map("end_year")
+  fuelType       String           @map("fuel_type") // DIESEL, PETROL, EV, CNG
+  engine         String?
+  engineCapacity Int?             @map("engine_capacity") // cc displacement
+  transmission   String?          // MANUAL, AUTOMATIC
+  isActive       Boolean          @default(true) @map("is_active")
+  createdAt      DateTime         @default(now()) @map("created_at")
 
-  model        VehicleModel     @relation(fields: [modelId], references: [id], onDelete: Cascade)
-  fitments     ProductFitment[]
+  model          VehicleModel     @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  fitments       ProductFitment[]
 
+  @@index([modelId, startYear, endYear])
   @@map("vehicle_variants")
 }
 
@@ -270,54 +277,89 @@ enum ProductCondition {
   USED
 }
 
-model ProductCategory {
-  id          String           @id @default(uuid()) @db.Uuid
-  name        String           @unique // e.g., Braking, Filtration, Suspension
-  slug        String           @unique
-  parentId    String?          @map("parent_id") @db.Uuid
-  createdAt   DateTime         @default(now()) @map("created_at")
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  DISCONTINUED
+}
 
-  parent      ProductCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children    ProductCategory[] @relation("CategoryHierarchy")
-  products    MasterProduct[]
+enum MediaType {
+  IMAGE
+  DIAGRAM
+  DOCUMENT
+  CERTIFICATE
+}
+
+model ProductCategory {
+  id           String            @id @default(uuid()) @db.Uuid
+  name         String            @unique // e.g., Braking, Filtration, Suspension
+  slug         String            @unique
+  description  String?
+  imageUrl     String?           @map("image_url")
+  isActive     Boolean           @default(true) @map("is_active")
+  displayOrder Int               @default(0) @map("display_order")
+  parentId     String?           @map("parent_id") @db.Uuid
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @default(now()) @map("updated_at")
+
+  parent       ProductCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children     ProductCategory[] @relation("CategoryHierarchy")
+  products     MasterProduct[]
 
   @@map("product_categories")
 }
 
 model Brand {
-  id          String          @id @default(uuid()) @db.Uuid
-  name        String          @unique // e.g., Bosch, Valeo, Brembo, Monroe
-  isOem       Boolean         @default(false) @map("is_oem")
-  createdAt   DateTime        @default(now()) @map("created_at")
+  id              String          @id @default(uuid()) @db.Uuid
+  name            String          @unique // e.g., Bosch, Valeo, Brembo, Monroe
+  code            String?         @unique // e.g., BOSCH, BREMBO
+  countryOfOrigin String?         @map("country_of_origin")
+  logoUrl         String?         @map("logo_url")
+  isOem           Boolean         @default(false) @map("is_oem")
+  isActive        Boolean         @default(true) @map("is_active")
+  createdAt       DateTime        @default(now()) @map("created_at")
 
-  products    MasterProduct[]
+  products        MasterProduct[]
 
   @@map("brands")
 }
 
 model MasterProduct {
-  id                String           @id @default(uuid()) @db.Uuid
-  partNumber        String           @map("part_number")
-  oemNumber         String?          @map("oem_number")
-  brandId           String           @map("brand_id") @db.Uuid
-  categoryId        String           @map("category_id") @db.Uuid
-  name              String
-  description       String?
-  specifications    Json             @default("{}")
-  conditionType     ProductCondition @default(AFTERMARKET) @map("condition_type")
-  isSafetyCritical  Boolean          @default(false) @map("is_safety_critical")
-  createdAt         DateTime         @default(now()) @map("created_at")
-  updatedAt         DateTime         @updatedAt @map("updated_at")
+  id                   String             @id @default(uuid()) @db.Uuid
+  partNumber           String             @map("part_number")
+  normalizedPartNumber String             @default("") @map("normalized_part_number")
+  oemNumber            String?            @map("oem_number")
+  normalizedOemNumber  String?            @map("normalized_oem_number")
+  brandId              String             @map("brand_id") @db.Uuid
+  categoryId           String             @map("category_id") @db.Uuid
+  name                 String
+  description          String?
+  specifications       Json               @default("{}")
+  conditionType        ProductCondition   @default(AFTERMARKET) @map("condition_type")
+  status               ProductStatus      @default(ACTIVE)
+  isSafetyCritical     Boolean            @default(false) @map("is_safety_critical")
+  unitOfMeasure        String             @default("PCS") @map("unit_of_measure")
+  dimensions           Json?
+  barcode              String?
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
 
-  brand             Brand            @relation(fields: [brandId], references: [id])
-  category          ProductCategory  @relation(fields: [categoryId], references: [id])
-  fitments          ProductFitment[]
-  crossReferences   CrossReference[]
-  supplierListings  SupplierProduct[]
+  brand                Brand              @relation(fields: [brandId], references: [id])
+  category             ProductCategory    @relation(fields: [categoryId], references: [id])
+  fitments             ProductFitment[]
+  crossReferences      CrossReference[]
+  oemReferences        OEMPartReference[]
+  media                ProductMedia[]
+  supplierListings     SupplierProduct[]
 
   @@unique([partNumber, brandId])
   @@index([partNumber])
+  @@index([normalizedPartNumber])
   @@index([oemNumber])
+  @@index([normalizedOemNumber])
+  @@index([categoryId, status])
+  @@index([brandId, status])
   @@map("master_products")
 }
 
@@ -325,6 +367,9 @@ model ProductFitment {
   id               String         @id @default(uuid()) @db.Uuid
   masterProductId  String         @map("master_product_id") @db.Uuid
   vehicleVariantId String         @map("vehicle_variant_id") @db.Uuid
+  position         String?        // e.g. "Front Axle", "Rear Axle", "Both"
+  fitmentStartYear Int?           @map("fitment_start_year")
+  fitmentEndYear   Int?           @map("fitment_end_year")
   isVerified       Boolean        @default(true) @map("is_verified")
   notes            String?
   createdAt        DateTime       @default(now()) @map("created_at")
@@ -333,7 +378,41 @@ model ProductFitment {
   vehicleVariant   VehicleVariant @relation(fields: [vehicleVariantId], references: [id], onDelete: Cascade)
 
   @@unique([masterProductId, vehicleVariantId])
+  @@index([vehicleVariantId, isVerified])
   @@map("product_fitments")
+}
+
+model OEMPartReference {
+  id                  String        @id @default(uuid()) @db.Uuid
+  masterProductId     String        @map("master_product_id") @db.Uuid
+  oemNumber           String        @map("oem_number")
+  normalizedOemNumber String        @map("normalized_oem_number")
+  vehicleMakeId       String?       @map("vehicle_make_id") @db.Uuid
+  notes               String?
+  createdAt           DateTime      @default(now()) @map("created_at")
+
+  masterProduct       MasterProduct @relation(fields: [masterProductId], references: [id], onDelete: Cascade)
+  vehicleMake         VehicleMake?  @relation(fields: [vehicleMakeId], references: [id], onDelete: SetNull)
+
+  @@unique([masterProductId, normalizedOemNumber])
+  @@index([normalizedOemNumber])
+  @@map("oem_part_references")
+}
+
+model ProductMedia {
+  id              String        @id @default(uuid()) @db.Uuid
+  masterProductId String        @map("master_product_id") @db.Uuid
+  url             String
+  mediaType       MediaType     @default(IMAGE) @map("media_type")
+  altText         String?       @map("alt_text")
+  isPrimary       Boolean       @default(false) @map("is_primary")
+  displayOrder    Int           @default(0) @map("display_order")
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  masterProduct   MasterProduct @relation(fields: [masterProductId], references: [id], onDelete: Cascade)
+
+  @@index([masterProductId, isPrimary])
+  @@map("product_media")
 }
 
 model CrossReference {

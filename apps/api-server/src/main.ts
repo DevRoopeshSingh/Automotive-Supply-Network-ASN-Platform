@@ -52,6 +52,10 @@ async function bootstrap() {
       "Business Accounts",
       "Multi-tenant organization accounts, switching and invitations",
     )
+    .addTag(
+      "Catalog & Vehicle Fitment",
+      "Automotive product master, category hierarchy, vehicle compatibility engine",
+    )
     .addTag("System", "Health and telemetry")
     .build();
 

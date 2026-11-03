@@ -143,3 +143,67 @@ curl -X POST http://localhost:4000/api/v1/businesses \
 curl -X POST http://localhost:4000/api/v1/businesses/<BUSINESS_ID>/switch \
   -H "Authorization: Bearer <ACCESS_TOKEN>"
 ```
+
+## 6. Testing the Automotive Catalog & Vehicle Fitment API
+
+### 6.1 Query Categories & Category Tree
+
+```bash
+# 1. Fetch flat category list
+curl -X GET http://localhost:4000/api/v1/catalog/categories
+
+# 2. Fetch full hierarchical category tree (Parent -> Children)
+curl -X GET http://localhost:4000/api/v1/catalog/categories/tree
+```
+
+### 6.2 Query Vehicle Hierarchy
+
+```bash
+# 1. List vehicle makes
+curl -X GET http://localhost:4000/api/v1/catalog/vehicles/makes
+
+# 2. List models for a vehicle make
+curl -X GET http://localhost:4000/api/v1/catalog/vehicles/makes/<MAKE_ID>/models
+
+# 3. List variants for a vehicle model
+curl -X GET http://localhost:4000/api/v1/catalog/vehicles/models/<MODEL_ID>/variants
+```
+
+### 6.3 Vehicle Part Compatibility Engine
+
+```bash
+# Query verified compatible parts for a vehicle variant and model year
+curl -X GET "http://localhost:4000/api/v1/catalog/vehicles/compatibility?variantId=<VARIANT_ID>&year=2021"
+```
+
+### 6.4 Search Products with Punctuation & Spacing Normalization
+
+```bash
+# Query with raw spaces/hyphens (e.g. "0986-AB1 234" automatically normalizes to "0986AB1234")
+curl -X GET "http://localhost:4000/api/v1/catalog/products?q=0986-AB1%20234&page=1&limit=10"
+
+# Fetch product master details including OEM references, media, and fitments
+curl -X GET http://localhost:4000/api/v1/catalog/products/<PRODUCT_ID>
+```
+
+### 6.5 Create Product Master (Authorized Roles Only)
+
+```bash
+curl -X POST http://localhost:4000/api/v1/catalog/products \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "partNumber": "0 986 AB1 234",
+    "brandId": "<BRAND_ID>",
+    "categoryId": "<CATEGORY_ID>",
+    "name": "Bosch Front Ceramic Brake Pad Set",
+    "oemNumber": "58101-1RA00",
+    "conditionType": "AFTERMARKET",
+    "isSafetyCritical": true,
+    "unitOfMeasure": "SET",
+    "specifications": {
+      "frictionMaterial": "Ceramic",
+      "axlePosition": "Front"
+    }
+  }'
+```

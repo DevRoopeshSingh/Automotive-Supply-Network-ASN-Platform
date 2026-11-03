@@ -103,6 +103,20 @@ export enum ProductCondition {
   USED = "USED",
 }
 
+export enum ProductStatus {
+  DRAFT = "DRAFT",
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE",
+  DISCONTINUED = "DISCONTINUED",
+}
+
+export enum MediaType {
+  IMAGE = "IMAGE",
+  DIAGRAM = "DIAGRAM",
+  DOCUMENT = "DOCUMENT",
+  CERTIFICATE = "CERTIFICATE",
+}
+
 export enum StockStatus {
   IN_STOCK = "IN_STOCK",
   LIMITED = "LIMITED",
@@ -217,4 +231,145 @@ export interface BusinessContext {
   gstNumber?: string | null;
   panNumber?: string | null;
   currentUserRole: UserRole;
+}
+
+// -----------------------------------------------------------------------------
+// Catalog & Fitment DTOs
+// -----------------------------------------------------------------------------
+
+export interface CategoryNode {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  isActive: boolean;
+  displayOrder: number;
+  parentId?: string | null;
+  children?: CategoryNode[];
+}
+
+export interface BrandDto {
+  id: string;
+  name: string;
+  code?: string | null;
+  countryOfOrigin?: string | null;
+  logoUrl?: string | null;
+  isOem: boolean;
+  isActive: boolean;
+}
+
+export interface VehicleMakeDto {
+  id: string;
+  name: string;
+  segment: VehicleSegment;
+  logoUrl?: string | null;
+  isActive: boolean;
+}
+
+export interface VehicleModelDto {
+  id: string;
+  makeId: string;
+  name: string;
+  isActive: boolean;
+  make?: {
+    id: string;
+    name: string;
+    segment: VehicleSegment;
+  };
+}
+
+export interface VehicleVariantDto {
+  id: string;
+  modelId: string;
+  variantName: string;
+  startYear: number;
+  endYear?: number | null;
+  fuelType: string;
+  engine?: string | null;
+  engineCapacity?: number | null;
+  transmission?: string | null;
+  isActive: boolean;
+  model?: {
+    id: string;
+    name: string;
+    make: {
+      id: string;
+      name: string;
+      segment: VehicleSegment;
+    };
+  };
+}
+
+export interface ProductMediaDto {
+  id: string;
+  url: string;
+  mediaType: MediaType;
+  altText?: string | null;
+  isPrimary: boolean;
+  displayOrder: number;
+}
+
+export interface OEMPartReferenceDto {
+  id: string;
+  oemNumber: string;
+  normalizedOemNumber: string;
+  vehicleMakeId?: string | null;
+  vehicleMakeName?: string | null;
+  notes?: string | null;
+}
+
+export interface ProductFitmentDto {
+  id: string;
+  masterProductId: string;
+  vehicleVariantId: string;
+  position?: string | null;
+  fitmentStartYear?: number | null;
+  fitmentEndYear?: number | null;
+  isVerified: boolean;
+  notes?: string | null;
+  vehicleVariant?: VehicleVariantDto;
+}
+
+export interface ProductMasterSummary {
+  id: string;
+  partNumber: string;
+  normalizedPartNumber: string;
+  oemNumber?: string | null;
+  normalizedOemNumber?: string | null;
+  name: string;
+  conditionType: ProductCondition;
+  status: ProductStatus;
+  isSafetyCritical: boolean;
+  unitOfMeasure: string;
+  brand: {
+    id: string;
+    name: string;
+    isOem: boolean;
+  };
+  category: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  primaryImageUrl?: string | null;
+}
+
+export interface ProductMasterDetail extends ProductMasterSummary {
+  description?: string | null;
+  specifications: Record<string, unknown>;
+  dimensions?: Record<string, unknown> | null;
+  barcode?: string | null;
+  media: ProductMediaDto[];
+  oemReferences: OEMPartReferenceDto[];
+  fitments: ProductFitmentDto[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VehicleCompatibilityResult {
+  vehicleVariant: VehicleVariantDto;
+  queryYear?: number;
+  compatibleProductsCount: number;
+  products: ProductMasterSummary[];
 }

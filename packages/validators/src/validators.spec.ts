@@ -3,6 +3,8 @@ import {
   RequestOtpSchema,
   RegisterBusinessSchema,
   CreateStockReservationSchema,
+  CreateProductSchema,
+  AddFitmentSchema,
 } from "./index";
 import { BusinessType } from "@asn/types";
 
@@ -55,5 +57,47 @@ describe("ASN Validation Schemas", () => {
       ],
     });
     expect(invalidShort.success).toBe(false);
+  });
+
+  it("should validate product creation schema with required fields", () => {
+    const valid = CreateProductSchema.safeParse({
+      partNumber: "0 986 AB1 234",
+      brandId: "123e4567-e89b-12d3-a456-426614174000",
+      categoryId: "123e4567-e89b-12d3-a456-426614174001",
+      name: "Front Ceramic Brake Pad Set",
+      conditionType: "AFTERMARKET",
+      isSafetyCritical: true,
+    });
+    expect(valid.success).toBe(true);
+
+    const invalid = CreateProductSchema.safeParse({
+      partNumber: "",
+      name: "",
+    });
+    expect(invalid.success).toBe(false);
+  });
+
+  it("should enforce fitment year range validity", () => {
+    // Valid fitment year span
+    const validFitment = AddFitmentSchema.safeParse({
+      vehicleVariantId: "123e4567-e89b-12d3-a456-426614174000",
+      position: "Front Axle",
+      fitmentStartYear: 2018,
+      fitmentEndYear: 2022,
+    });
+    expect(validFitment.success).toBe(true);
+
+    // Invalid fitment year span (start year > end year)
+    const invalidFitment = AddFitmentSchema.safeParse({
+      vehicleVariantId: "123e4567-e89b-12d3-a456-426614174000",
+      fitmentStartYear: 2023,
+      fitmentEndYear: 2020,
+    });
+    expect(invalidFitment.success).toBe(false);
+    if (!invalidFitment.success) {
+      expect(invalidFitment.error.errors[0]?.message).toContain(
+        "Fitment start year cannot be greater than end year",
+      );
+    }
   });
 });

@@ -84,3 +84,92 @@ flowchart TD
 - `RolesGuard` evaluates `@RequireRoles(UserRole.BUSINESS_OWNER, UserRole.BUSINESS_ADMIN)`.
 - Platform Super Admins have universal read/write bypass for cross-tenant governance and emergency intervention.
 - Sensitive actions (`USER_LOGIN_OTP`, `BUSINESS_CREATED`, `BUSINESS_CONTEXT_SWITCHED`, `BUSINESS_MEMBER_INVITED`) write immutable records to `audit_logs`.
+
+## 5. Automotive Product Catalog & Vehicle Fitment Architecture
+
+### 5.1 Decoupled Master Catalog vs. Supplier Inventory
+
+- **`MasterProduct`**: Canonical representation of automotive aftermarket parts. Stores universal specifications, dimensions, brand, category, safety-critical indicators, media, and vehicle compatibility.
+- **`SupplierProduct`**: Stores tenant-specific inventory, stock levels, warehouse locations, and pricing. Decoupled from `MasterProduct` to preserve catalog data integrity across multi-seller listings.
+- **Access Boundaries**: Buyer searches query `MasterProduct` with status `ACTIVE`. Catalog mutation endpoints (`POST /api/v1/catalog/products`) require `BUSINESS_OWNER`, `BUSINESS_ADMIN`, `SUPPLIER_ADMIN`, or `CATALOG_SPECIALIST` privileges.
+
+### 5.2 Punctuation-Insensitive Search & Normalized Part Numbers
+
+- Indian automotive mechanics and suppliers query part numbers using unpredictable spacing and punctuation (e.g. `0 986 AB1 234`, `0986-AB1-234`, `0986AB1234`).
+- All parts and OEM numbers maintain indexed normalized columns (`normalized_part_number`, `normalized_oem_number`) stripping spaces, dashes, dots, and underscores.
+- Queries execute index scans across both original and normalized values, brand names, and linked OEM cross references (`oem_part_references`).
+
+### 5.3 Hierarchical Category Engine
+
+- Two-tier or multi-tier category structures managed through self-referential adjacency (`parent_id`).
+- Unique slug indexing (`product_categories.slug`) allows querying top-level domains (e.g. `brake-system`) which automatically resolves child categories (e.g. `brake-pads`, `brake-discs-rotors`).
+
+### 5.4 Vehicle Fitment & Compatibility Engine
+
+- Structured three-tier vehicle hierarchy: `VehicleMake` -> `VehicleModel` -> `VehicleVariant`.
+- `VehicleVariant` defines production year range (`start_year`, `end_year`), `fuel_type`, `engine_capacity`, and `transmission`.
+- `ProductFitment` maps products to variants with optional component-level installation positions (`Front Axle`, `Rear`) and custom fitment year overrides (`fitment_start_year`, `fitment_end_year`).
+- Compatibility verification ensures:
+  1. The queried vehicle model year falls within the variant's manufacturing span.
+  2. The queried year satisfies any component-specific fitment year overrides.
+  3. The mapped fitment is verified (`is_verified = true`) and the product is active.
+
+---
+
+## 4. Multi-Tenant Identity, Authentication & Session Security
+
+### 4.1 Phone-Based OTP Authentication
+
+- **Indian Mobile Normalization:** Accepts `+91`, `0`, or 10-digit formats and normalizes to standard 10-digit format.
+- **Security Controls:**
+  - Rate-limited to max 5 requests per 15-minute sliding window with a mandatory 60-second cooldown between requests.
+  - Maximum 5 failed verification attempts before permanent OTP invalidation.
+  - OTPs stored exclusively as salted SHA-256 hashes (`otp_hash`).
+  - Cryptographically secure timing-safe hash comparison (`crypto.timingSafeEqual`).
+  - Single-use guarantee (`is_used: true`).
+  - Uniform response messages to prevent phone number enumeration.
+  - Zero OTP logging in production.
+
+### 4.2 JWT Session Security & Refresh Token Rotation
+
+- **Access Tokens:** Short-lived (15 minutes), containing user ID, phone, role, and active business context.
+- **Refresh Tokens:** Long-lived (7 days), stored as SHA-256 hashes in `refresh_sessions`.
+- **Automatic Reuse Detection:** Refresh tokens are bound to a cryptographic `familyId`. If an already-rotated or revoked token is replayed by an adversary, the entire token family is immediately invalidated, terminating all sessions for that device.
+- **Dual Client Support:** Supports HttpOnly, Secure, `SameSite=Lax` cookies for browser clients, with simultaneous support for Authorization Bearer tokens in mobile requests.
+
+### 4.3 Multi-Tenant RBAC & Tenant Isolation
+
+- Users can belong to multiple businesses (`BusinessMember`).
+- `TenantContextGuard` intercepts incoming requests, reads the `X-Business-Id` header, and verifies active membership in PostgreSQL.
+- `RolesGuard` evaluates `@RequireRoles(UserRole.BUSINESS_OWNER, UserRole.BUSINESS_ADMIN)`.
+- Platform Super Admins have universal read/write bypass for cross-tenant governance and emergency intervention.
+- Sensitive actions (`USER_LOGIN_OTP`, `BUSINESS_CREATED`, `BUSINESS_CONTEXT_SWITCHED`, `BUSINESS_MEMBER_INVITED`) write immutable records to `audit_logs`.
+
+## 5. Automotive Product Catalog & Vehicle Fitment Architecture
+
+### 5.1 Decoupled Master Catalog vs. Supplier Inventory
+
+- **`MasterProduct`**: Canonical representation of automotive aftermarket parts. Stores universal specifications, dimensions, brand, category, safety-critical indicators, media, and vehicle compatibility.
+- **`SupplierProduct`**: Stores tenant-specific inventory, stock levels, warehouse locations, and pricing. Decoupled from `MasterProduct` to preserve catalog data integrity across multi-seller listings.
+- **Access Boundaries**: Buyer searches query `MasterProduct` with status `ACTIVE`. Catalog mutation endpoints (`POST /api/v1/catalog/products`) require `BUSINESS_OWNER`, `BUSINESS_ADMIN`, `SUPPLIER_ADMIN`, or `CATALOG_SPECIALIST` privileges.
+
+### 5.2 Punctuation-Insensitive Search & Normalized Part Numbers
+
+- Indian automotive mechanics and suppliers query part numbers using unpredictable spacing and punctuation (e.g. `0 986 AB1 234`, `0986-AB1-234`, `0986AB1234`).
+- All parts and OEM numbers maintain indexed normalized columns (`normalized_part_number`, `normalized_oem_number`) stripping spaces, dashes, dots, and underscores.
+- Queries execute index scans across both original and normalized values, brand names, and linked OEM cross references (`oem_part_references`).
+
+### 5.3 Hierarchical Category Engine
+
+- Two-tier or multi-tier category structures managed through self-referential adjacency (`parent_id`).
+- Unique slug indexing (`product_categories.slug`) allows querying top-level domains (e.g. `brake-system`) which automatically resolves child categories (e.g. `brake-pads`, `brake-discs-rotors`).
+
+### 5.4 Vehicle Fitment & Compatibility Engine
+
+- Structured three-tier vehicle hierarchy: `VehicleMake` -> `VehicleModel` -> `VehicleVariant`.
+- `VehicleVariant` defines production year range (`start_year`, `end_year`), `fuel_type`, `engine_capacity`, and `transmission`.
+- `ProductFitment` maps products to variants with optional component-level installation positions (`Front Axle`, `Rear`) and custom fitment year overrides (`fitment_start_year`, `fitment_end_year`).
+- Compatibility verification ensures:
+  1. The queried vehicle model year falls within the variant's manufacturing span.
+  2. The queried year satisfies any component-specific fitment year overrides.
+  3. The mapped fitment is verified (`is_verified = true`) and the product is active.
