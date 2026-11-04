@@ -415,3 +415,151 @@ curl -X POST http://localhost:4000/api/v1/supplier/ssn/rfqs/<RFQ_ID>/award \
     "quotationId": "<WINNING_QUOTATION_ID>"
   }'
 ```
+
+---
+
+## 9. Logistics & Multi-Leg Delivery Testing Guide
+
+### 9.1 Register Logistics Provider
+
+```bash
+# Register a 3PL logistics provider (Admin or Logistics Manager)
+curl -X POST http://localhost:4000/api/v1/logistics/providers \
+  -H "Authorization: Bearer <ADMIN_OR_LOGISTICS_TOKEN>" \
+  -H "X-Business-Id: <BUSINESS_ID>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Delhivery Express Surface",
+    "code": "DELHIVERY_EXP",
+    "type": "THIRD_PARTY_3PL",
+    "contactPerson": "Rajesh Sharma",
+    "phone": "9876543210",
+    "email": "operations@delhivery.example.com",
+    "trackingUrlTemplate": "https://www.delhivery.com/track/package/{{trackingNumber}}"
+  }'
+
+# List active logistics providers
+curl -X GET http://localhost:4000/api/v1/logistics/providers \
+  -H "Authorization: Bearer <USER_TOKEN>" \
+  -H "X-Business-Id: <BUSINESS_ID>"
+```
+
+### 9.2 Create Shipment with Multi-Leg Routing
+
+```bash
+# Create shipment with 2 legs (First-mile pickup and Last-mile delivery)
+curl -X POST http://localhost:4000/api/v1/logistics/shipments \
+  -H "Authorization: Bearer <SUPPLIER_TOKEN>" \
+  -H "X-Business-Id: <SUPPLIER_BUSINESS_ID>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "receiverBusinessId": "<BUYER_BUSINESS_ID>",
+    "sourcingRfqId": "<AWARDED_RFQ_ID>",
+    "sourcingQuotationId": "<WINNING_QUOTATION_ID>",
+    "pickupAddress": "Plot 42, Mayapuri Industrial Area Phase 1",
+    "pickupCity": "New Delhi",
+    "pickupState": "Delhi",
+    "pickupPostalCode": "110064",
+    "deliveryAddress": "Shop 12, Auto Complex, Sector 18",
+    "deliveryCity": "Gurugram",
+    "deliveryState": "Haryana",
+    "deliveryPostalCode": "122015",
+    "deliveryNotes": "Deliver to rear loading bay between 10 AM and 6 PM",
+    "items": [
+      {
+        "masterProductId": "<MASTER_PRODUCT_ID>",
+        "quantity": 25,
+        "weightKg": 4.5
+      }
+    ],
+    "legs": [
+      {
+        "sequenceNumber": 1,
+        "legType": "FIRST_MILE_PICKUP",
+        "originCity": "New Delhi",
+        "originPostalCode": "110064",
+        "destinationCity": "New Delhi",
+        "destinationPostalCode": "110037"
+      },
+      {
+        "sequenceNumber": 2,
+        "legType": "LAST_MILE_DELIVERY",
+        "originCity": "New Delhi",
+        "originPostalCode": "110037",
+        "destinationCity": "Gurugram",
+        "destinationPostalCode": "122015"
+      }
+    ]
+  }'
+```
+
+### 9.3 Assign Carrier to Multi-Leg Route & Track Progress
+
+```bash
+# 1. Assign provider to a specific leg
+curl -X PATCH http://localhost:4000/api/v1/logistics/shipments/<SHIPMENT_ID>/legs/<LEG_ID>/assign \
+  -H "Authorization: Bearer <LOGISTICS_TOKEN>" \
+  -H "X-Business-Id: <SENDER_OR_CARRIER_BUSINESS_ID>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "providerId": "<LOGISTICS_PROVIDER_ID>",
+    "carrierTrackingNumber": "DLV9988776655",
+    "estimatedPickupAt": "2026-11-04T14:00:00.000Z",
+    "estimatedDeliveryAt": "2026-11-04T18:00:00.000Z"
+  }'
+
+# 2. Progress shipment through lifecycle (PICKUP_SCHEDULED -> PICKED_UP -> IN_TRANSIT -> OUT_FOR_DELIVERY)
+curl -X PATCH http://localhost:4000/api/v1/logistics/shipments/<SHIPMENT_ID>/status \
+  -H "Authorization: Bearer <CARRIER_OR_SENDER_TOKEN>" \
+  -H "X-Business-Id: <BUSINESS_ID>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "OUT_FOR_DELIVERY",
+    "notes": "Out for final delivery with rider Ravi Kumar"
+  }'
+
+# 3. Add location tracking checkpoint event
+curl -X POST http://localhost:4000/api/v1/logistics/shipments/<SHIPMENT_ID>/events \
+  -H "Authorization: Bearer <CARRIER_OR_SENDER_TOKEN>" \
+  -H "X-Business-Id: <BUSINESS_ID>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "eventType": "CARRIER_UPDATE",
+    "locationCity": "Gurugram",
+    "description": "Van reached Sector 18 distribution hub",
+    "latitude": 28.4595,
+    "longitude": 77.0266
+  }'
+```
+
+### 9.4 Record Delivery Failure & Return Flow
+
+```bash
+# Record delivery failure with return initiation
+curl -X POST http://localhost:4000/api/v1/logistics/shipments/<SHIPMENT_ID>/failed \
+  -H "Authorization: Bearer <CARRIER_TOKEN>" \
+  -H "X-Business-Id: <BUSINESS_ID>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "failureReason": "Premises closed: workshop shutters locked",
+    "initiateReturn": true,
+    "notes": "Second failed delivery attempt; initiating return to sender"
+  }'
+```
+
+### 9.5 Submit Proof of Delivery (POD)
+
+```bash
+# Submit POD to atomically transition to DELIVERED
+curl -X POST http://localhost:4000/api/v1/logistics/shipments/<SHIPMENT_ID>/proof-of-delivery \
+  -H "Authorization: Bearer <CARRIER_TOKEN>" \
+  -H "X-Business-Id: <BUSINESS_ID>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "recipientName": "Sanjay Verma",
+    "recipientPhone": "9876543210",
+    "documentUrl": "https://s3.ap-south-1.amazonaws.com/asn-pod-docs/shp-100-signed.jpg",
+    "verificationCode": "847291",
+    "notes": "Verified photo ID and received signed delivery challan"
+  }'
+```

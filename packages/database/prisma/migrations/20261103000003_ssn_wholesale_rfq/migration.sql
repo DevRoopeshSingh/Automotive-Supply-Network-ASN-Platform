@@ -139,3 +139,4 @@ ALTER TABLE "rfq_invited_suppliers" ADD CONSTRAINT "rfq_invited_suppliers_rfq_id
 
 ALTER TABLE "rfq_invited_suppliers" DROP CONSTRAINT IF EXISTS "rfq_invited_suppliers_supplier_business_id_fkey";
 ALTER TABLE "rfq_invited_suppliers" ADD CONSTRAINT "rfq_invited_suppliers_supplier_business_id_fkey" FOREIGN KEY ("supplier_business_id") REFERENCES "businesses"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+

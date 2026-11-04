@@ -104,6 +104,9 @@ model Business {
   buyerRfqs          SourcingRfq[]        @relation("BuyerRfqs")
   supplierQuotations SourcingQuotation[]  @relation("SupplierQuotations")
   invitedRfqs        RfqInvitedSupplier[] @relation("InvitedRfqs")
+  sentShipments      Shipment[]           @relation("SenderShipments")
+  receivedShipments  Shipment[]           @relation("ReceiverShipments")
+  logisticsProviders LogisticsProvider[]
 
   @@map("businesses")
 }
@@ -361,6 +364,7 @@ model MasterProduct {
   media                ProductMedia[]
   supplierListings     SupplierProduct[]
   sourcingRfqs         SourcingRfq[]
+  shipmentItems        ShipmentItem[]
 
   @@unique([partNumber, brandId])
   @@index([partNumber])
@@ -491,6 +495,7 @@ model SupplierWarehouse {
   inventories  WarehouseInventory[]
   movements    InventoryMovement[]
   importJobs   InventoryImportJob[]
+  shipments    Shipment[]
 
   @@unique([businessId, code])
   @@index([businessId, isActive])
@@ -755,6 +760,7 @@ model OrderItem {
 // -----------------------------------------------------------------------------
 
 enum LegStatus {
+  PENDING
   ASSIGNED
   IN_PROGRESS
   COMPLETED
@@ -899,6 +905,7 @@ model SourcingRfq {
   quotations         SourcingQuotation[]  @relation("RfqQuotations")
   invitedSuppliers   RfqInvitedSupplier[]
   awardedQuotation   SourcingQuotation?   @relation("AwardedQuotation", fields: [awardedQuotationId], references: [id], onDelete: SetNull)
+  shipments          Shipment[]
 
   @@index([buyerBusinessId, status])
   @@index([masterProductId, status])
@@ -931,6 +938,7 @@ model SourcingQuotation {
   submittedBy          User                @relation("SubmittedQuotations", fields: [submittedById], references: [id])
   revisions            QuotationRevision[]
   awardedAsQuotation   SourcingRfq?        @relation("AwardedQuotation")
+  shipments            Shipment[]
 
   @@unique([rfqId, supplierBusinessId])
   @@index([rfqId, status])
@@ -971,5 +979,214 @@ model RfqInvitedSupplier {
   @@unique([rfqId, supplierBusinessId])
   @@index([supplierBusinessId])
   @@map("rfq_invited_suppliers")
+}
+
+// -----------------------------------------------------------------------------
+// Logistics Engine & Multi-Leg Delivery Orchestration
+// -----------------------------------------------------------------------------
+
+enum ShipmentStatus {
+  DRAFT
+  CREATED
+  PICKUP_SCHEDULED
+  PICKED_UP
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  DELIVERY_FAILED
+  CANCELLED
+  RETURN_INITIATED
+  RETURNED
+}
+
+enum LegType {
+  FIRST_MILE_PICKUP
+  MID_MILE_TRANSFER
+  HUB_SORTING
+  LAST_MILE_DELIVERY
+}
+
+enum LogisticsProviderType {
+  INTERNAL_FLEET
+  THIRD_PARTY_3PL
+  HYPERLOCAL
+  INTERCITY_FREIGHT
+}
+
+enum ShipmentEventType {
+  SHIPMENT_CREATED
+  PICKUP_SCHEDULED
+  PICKED_UP
+  LEG_STARTED
+  ARRIVED_AT_HUB
+  DEPARTED_HUB
+  OUT_FOR_DELIVERY
+  DELIVERY_ATTEMPTED
+  DELIVERY_FAILED
+  DELIVERED
+  RETURN_INITIATED
+  RETURNED
+  CANCELLED
+  STATUS_UPDATED
+}
+
+model LogisticsProvider {
+  id                  String                @id @default(uuid()) @db.Uuid
+  providerCode        String                @unique @map("provider_code")
+  name                String
+  providerType        LogisticsProviderType @default(THIRD_PARTY_3PL) @map("provider_type")
+  contactPhone        String?               @map("contact_phone")
+  contactEmail        String?               @map("contact_email")
+  trackingUrlTemplate String?               @map("tracking_url_template")
+  isActive            Boolean               @default(true) @map("is_active")
+  businessId          String?               @map("business_id") @db.Uuid
+  createdAt           DateTime              @default(now()) @map("created_at")
+  updatedAt           DateTime              @updatedAt @default(now()) @map("updated_at")
+
+  business            Business?             @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  legs                ShipmentLeg[]
+
+  @@map("logistics_providers")
+}
+
+model Shipment {
+  id                    String                  @id @default(uuid()) @db.Uuid
+  shipmentNumber        String                  @unique @map("shipment_number")
+  senderBusinessId      String                  @map("sender_business_id") @db.Uuid
+  receiverBusinessId    String                  @map("receiver_business_id") @db.Uuid
+  sourcingRfqId         String?                 @map("sourcing_rfq_id") @db.Uuid
+  sourcingQuotationId   String?                 @map("sourcing_quotation_id") @db.Uuid
+  orderId               String?                 @map("order_id") @db.Uuid
+  status                ShipmentStatus          @default(CREATED)
+  pickupAddress         String                  @map("pickup_address")
+  pickupCity            String                  @map("pickup_city")
+  pickupState           String                  @map("pickup_state")
+  pickupPostalCode      String                  @map("pickup_postal_code")
+  pickupWarehouseId     String?                 @map("pickup_warehouse_id") @db.Uuid
+  deliveryAddress       String                  @map("delivery_address")
+  deliveryCity          String                  @map("delivery_city")
+  deliveryState         String                  @map("delivery_state")
+  deliveryPostalCode    String                  @map("delivery_postal_code")
+  deliveryContactName   String?                 @map("delivery_contact_name")
+  deliveryContactPhone  String?                 @map("delivery_contact_phone")
+  scheduledPickupAt     DateTime?               @map("scheduled_pickup_at")
+  actualPickupAt        DateTime?               @map("actual_pickup_at")
+  estimatedDeliveryAt   DateTime?               @map("estimated_delivery_at")
+  actualDeliveryAt      DateTime?               @map("actual_delivery_at")
+  totalWeightKg         Float?                  @map("total_weight_kg")
+  totalVolumeCbm        Float?                  @map("total_volume_cbm")
+  declaredValue         Decimal?                @map("declared_value") @db.Decimal(10, 2)
+  currentLocation       String?                 @map("current_location")
+  deliveryFailureReason String?                 @map("delivery_failure_reason")
+  deliveryAttemptCount  Int                     @default(0) @map("delivery_attempt_count")
+  notes                 String?
+  createdAt             DateTime                @default(now()) @map("created_at")
+  updatedAt             DateTime                @updatedAt @default(now()) @map("updated_at")
+
+  senderBusiness        Business                @relation("SenderShipments", fields: [senderBusinessId], references: [id])
+  receiverBusiness      Business                @relation("ReceiverShipments", fields: [receiverBusinessId], references: [id])
+  sourcingRfq           SourcingRfq?            @relation(fields: [sourcingRfqId], references: [id], onDelete: SetNull)
+  sourcingQuotation     SourcingQuotation?      @relation(fields: [sourcingQuotationId], references: [id], onDelete: SetNull)
+  pickupWarehouse       SupplierWarehouse?      @relation(fields: [pickupWarehouseId], references: [id], onDelete: SetNull)
+  items                 ShipmentItem[]
+  legs                  ShipmentLeg[]
+  trackingEvents        ShipmentTrackingEvent[]
+  proofOfDelivery       ProofOfDelivery?
+
+  @@index([senderBusinessId, status])
+  @@index([receiverBusinessId, status])
+  @@index([status])
+  @@index([shipmentNumber])
+  @@map("shipments")
+}
+
+model ShipmentItem {
+  id              String        @id @default(uuid()) @db.Uuid
+  shipmentId      String        @map("shipment_id") @db.Uuid
+  masterProductId String        @map("master_product_id") @db.Uuid
+  quantity        Int
+  unitPrice       Decimal?      @map("unit_price") @db.Decimal(10, 2)
+  totalPrice      Decimal?      @map("total_price") @db.Decimal(10, 2)
+  sku             String?
+  notes           String?
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  shipment        Shipment      @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  masterProduct   MasterProduct @relation(fields: [masterProductId], references: [id])
+
+  @@index([shipmentId])
+  @@map("shipment_items")
+}
+
+model ShipmentLeg {
+  id                      String                 @id @default(uuid()) @db.Uuid
+  shipmentId              String                 @map("shipment_id") @db.Uuid
+  legSequence             Int                    @map("leg_sequence")
+  legType                 LegType                @default(LAST_MILE_DELIVERY) @map("leg_type")
+  status                  LegStatus              @default(PENDING)
+  originFacilityName      String?                @map("origin_facility_name")
+  originAddress           String                 @map("origin_address")
+  originCity              String                 @map("origin_city")
+  originState             String                 @map("origin_state")
+  originPostalCode        String                 @map("origin_postal_code")
+  destinationFacilityName String?                @map("destination_facility_name")
+  destinationAddress      String                 @map("destination_address")
+  destinationCity         String                 @map("destination_city")
+  destinationState        String                 @map("destination_state")
+  destinationPostalCode   String                 @map("destination_postal_code")
+  assignedProviderId      String?                @map("assigned_provider_id") @db.Uuid
+  trackingNumber          String?                @map("tracking_number")
+  plannedDepartureAt      DateTime?              @map("planned_departure_at")
+  actualDepartureAt       DateTime?              @map("actual_departure_at")
+  plannedArrivalAt        DateTime?              @map("planned_arrival_at")
+  actualArrivalAt         DateTime?              @map("actual_arrival_at")
+  notes                   String?
+  createdAt               DateTime               @default(now()) @map("created_at")
+  updatedAt               DateTime               @updatedAt @default(now()) @map("updated_at")
+
+  shipment                Shipment               @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  assignedProvider        LogisticsProvider?     @relation(fields: [assignedProviderId], references: [id], onDelete: SetNull)
+  trackingEvents          ShipmentTrackingEvent[]
+
+  @@unique([shipmentId, legSequence])
+  @@index([shipmentId, status])
+  @@index([assignedProviderId])
+  @@map("shipment_legs")
+}
+
+model ShipmentTrackingEvent {
+  id           String            @id @default(uuid()) @db.Uuid
+  shipmentId   String            @map("shipment_id") @db.Uuid
+  legId        String?           @map("leg_id") @db.Uuid
+  eventType    ShipmentEventType @map("event_type")
+  location     String?
+  notes        String?
+  actorUserId  String?           @map("actor_user_id") @db.Uuid
+  actorName    String?           @map("actor_name")
+  actorRole    String?           @map("actor_role")
+  timestamp    DateTime          @default(now())
+
+  shipment     Shipment          @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  leg          ShipmentLeg?      @relation(fields: [legId], references: [id], onDelete: SetNull)
+
+  @@index([shipmentId, timestamp])
+  @@map("shipment_tracking_events")
+}
+
+model ProofOfDelivery {
+  id                 String    @id @default(uuid()) @db.Uuid
+  shipmentId         String    @unique @map("shipment_id") @db.Uuid
+  recipientName      String    @map("recipient_name")
+  recipientPhone     String?   @map("recipient_phone")
+  deliveryTimestamp  DateTime  @default(now()) @map("delivery_timestamp")
+  documentUrl        String?   @map("document_url")
+  verificationCode   String?   @map("verification_code")
+  confirmedByUserId  String?   @map("confirmed_by_user_id") @db.Uuid
+  notes              String?
+  createdAt          DateTime  @default(now()) @map("created_at")
+
+  shipment           Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+
+  @@map("proof_of_delivery")
 }
 

@@ -64,6 +64,10 @@ async function bootstrap() {
       "Supplier Supply Network (SSN) — Wholesale & B2B RFQs",
       "Supplier-to-supplier wholesale sourcing, quotations, negotiation, and atomic RFQ awards",
     )
+    .addTag(
+      "Logistics & Multi-Leg Delivery Orchestration",
+      "Shipment creation, multi-leg delivery planning, 3PL/fleet assignment, tracking ledger, and Proof of Delivery (POD)",
+    )
     .addTag("System", "Health and telemetry")
     .build();
 

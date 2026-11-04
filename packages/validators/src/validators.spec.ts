@@ -11,6 +11,9 @@ import {
   CreateRfqSchema,
   SubmitQuotationSchema,
   AwardRfqSchema,
+  CreateShipmentSchema,
+  SubmitProofOfDeliverySchema,
+  CreateLogisticsProviderSchema,
 } from "./index";
 import { BusinessType } from "@asn/types";
 
@@ -227,5 +230,72 @@ describe("ASN Validation Schemas", () => {
       quotationId: "not-a-uuid",
     });
     expect(invalid.success).toBe(false);
+  });
+
+  it("should validate shipment creation with valid Indian addresses and items", () => {
+    const validShipment = CreateShipmentSchema.safeParse({
+      receiverBusinessId: "123e4567-e89b-12d3-a456-426614174001",
+      pickupAddress: "Mayapuri Industrial Area Phase 2",
+      pickupCity: "New Delhi",
+      pickupState: "Delhi",
+      pickupPostalCode: "110064",
+      deliveryAddress: "Gala 4, Kurla Auto Market",
+      deliveryCity: "Mumbai",
+      deliveryState: "Maharashtra",
+      deliveryPostalCode: "400070",
+      items: [
+        {
+          masterProductId: "123e4567-e89b-12d3-a456-426614174002",
+          quantity: 20,
+          unitPrice: 1250.0,
+        },
+      ],
+    });
+    expect(validShipment.success).toBe(true);
+
+    const invalidEmptyItems = CreateShipmentSchema.safeParse({
+      receiverBusinessId: "123e4567-e89b-12d3-a456-426614174001",
+      pickupAddress: "Mayapuri Industrial Area",
+      pickupCity: "New Delhi",
+      pickupState: "Delhi",
+      pickupPostalCode: "110064",
+      deliveryAddress: "Kurla Auto Market",
+      deliveryCity: "Mumbai",
+      deliveryState: "Maharashtra",
+      deliveryPostalCode: "400070",
+      items: [], // Empty items must fail
+    });
+    expect(invalidEmptyItems.success).toBe(false);
+  });
+
+  it("should validate proof of delivery with recipient name and optional phone", () => {
+    const validPod = SubmitProofOfDeliverySchema.safeParse({
+      recipientName: "Rajesh Sharma",
+      recipientPhone: "9876543210",
+      documentUrl: "https://storage.example.com/pod/sig-001.jpg",
+      notes: "Received in sound condition with seal intact",
+    });
+    expect(validPod.success).toBe(true);
+
+    const invalidShortName = SubmitProofOfDeliverySchema.safeParse({
+      recipientName: "R", // Too short
+    });
+    expect(invalidShortName.success).toBe(false);
+  });
+
+  it("should validate logistics provider creation schema", () => {
+    const validProvider = CreateLogisticsProviderSchema.safeParse({
+      providerCode: "LP-DELHIVERY-01",
+      name: "Delhivery Surface Express",
+      contactPhone: "9876543210",
+      contactEmail: "ops@delhivery.example.com",
+    });
+    expect(validProvider.success).toBe(true);
+
+    const invalidCode = CreateLogisticsProviderSchema.safeParse({
+      providerCode: "INVALID CODE WITH SPACES!",
+      name: "Delhivery Surface",
+    });
+    expect(invalidCode.success).toBe(false);
   });
 });

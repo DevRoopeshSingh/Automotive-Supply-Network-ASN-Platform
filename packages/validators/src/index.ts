@@ -4,4 +4,5 @@ export * from "./catalog";
 export * from "./inventory";
 export * from "./reservation";
 export * from "./rfq";
+export * from "./logistics";
 export * from "./env";

@@ -634,3 +634,190 @@ export interface RfqComparisonDto {
   lowestUnitPrice?: number | null;
   fastestLeadTimeDays?: number | null;
 }
+
+// -----------------------------------------------------------------------------
+// Logistics Engine & Multi-Leg Delivery Orchestration DTOs
+// -----------------------------------------------------------------------------
+
+export enum ShipmentStatus {
+  DRAFT = "DRAFT",
+  CREATED = "CREATED",
+  PICKUP_SCHEDULED = "PICKUP_SCHEDULED",
+  PICKED_UP = "PICKED_UP",
+  IN_TRANSIT = "IN_TRANSIT",
+  OUT_FOR_DELIVERY = "OUT_FOR_DELIVERY",
+  DELIVERED = "DELIVERED",
+  DELIVERY_FAILED = "DELIVERY_FAILED",
+  CANCELLED = "CANCELLED",
+  RETURN_INITIATED = "RETURN_INITIATED",
+  RETURNED = "RETURNED",
+}
+
+export enum LegType {
+  FIRST_MILE_PICKUP = "FIRST_MILE_PICKUP",
+  MID_MILE_TRANSFER = "MID_MILE_TRANSFER",
+  HUB_SORTING = "HUB_SORTING",
+  LAST_MILE_DELIVERY = "LAST_MILE_DELIVERY",
+}
+
+export enum LegStatus {
+  PENDING = "PENDING",
+  ASSIGNED = "ASSIGNED",
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED",
+  FAILED = "FAILED",
+}
+
+export enum LogisticsProviderType {
+  INTERNAL_FLEET = "INTERNAL_FLEET",
+  THIRD_PARTY_3PL = "THIRD_PARTY_3PL",
+  HYPERLOCAL = "HYPERLOCAL",
+  INTERCITY_FREIGHT = "INTERCITY_FREIGHT",
+}
+
+export enum ShipmentEventType {
+  SHIPMENT_CREATED = "SHIPMENT_CREATED",
+  PICKUP_SCHEDULED = "PICKUP_SCHEDULED",
+  PICKED_UP = "PICKED_UP",
+  LEG_STARTED = "LEG_STARTED",
+  ARRIVED_AT_HUB = "ARRIVED_AT_HUB",
+  DEPARTED_HUB = "DEPARTED_HUB",
+  OUT_FOR_DELIVERY = "OUT_FOR_DELIVERY",
+  DELIVERY_ATTEMPTED = "DELIVERY_ATTEMPTED",
+  DELIVERY_FAILED = "DELIVERY_FAILED",
+  DELIVERED = "DELIVERED",
+  RETURN_INITIATED = "RETURN_INITIATED",
+  RETURNED = "RETURNED",
+  CANCELLED = "CANCELLED",
+  STATUS_UPDATED = "STATUS_UPDATED",
+}
+
+export interface LogisticsProviderDto {
+  id: string;
+  providerCode: string;
+  name: string;
+  providerType: LogisticsProviderType;
+  contactPhone?: string | null;
+  contactEmail?: string | null;
+  trackingUrlTemplate?: string | null;
+  isActive: boolean;
+  businessId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ShipmentItemDto {
+  id: string;
+  shipmentId: string;
+  masterProductId: string;
+  productName: string;
+  partNumber: string;
+  brandName?: string;
+  quantity: number;
+  unitPrice?: number | null;
+  totalPrice?: number | null;
+  sku?: string | null;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface ShipmentLegDto {
+  id: string;
+  shipmentId: string;
+  legSequence: number;
+  legType: LegType;
+  status: LegStatus;
+  originFacilityName?: string | null;
+  originAddress: string;
+  originCity: string;
+  originState: string;
+  originPostalCode: string;
+  destinationFacilityName?: string | null;
+  destinationAddress: string;
+  destinationCity: string;
+  destinationState: string;
+  destinationPostalCode: string;
+  assignedProviderId?: string | null;
+  assignedProviderName?: string | null;
+  trackingNumber?: string | null;
+  plannedDepartureAt?: string | null;
+  actualDepartureAt?: string | null;
+  plannedArrivalAt?: string | null;
+  actualArrivalAt?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ShipmentTrackingEventDto {
+  id: string;
+  shipmentId: string;
+  legId?: string | null;
+  eventType: ShipmentEventType;
+  location?: string | null;
+  notes?: string | null;
+  actorUserId?: string | null;
+  actorName?: string | null;
+  actorRole?: string | null;
+  timestamp: string;
+}
+
+export interface ProofOfDeliveryDto {
+  id: string;
+  shipmentId: string;
+  recipientName: string;
+  recipientPhone?: string | null;
+  deliveryTimestamp: string;
+  documentUrl?: string | null;
+  verificationCode?: string | null;
+  confirmedByUserId?: string | null;
+  notes?: string | null;
+  createdAt: string;
+}
+
+export interface ShipmentSummaryDto {
+  id: string;
+  shipmentNumber: string;
+  senderBusinessId: string;
+  senderBusinessName: string;
+  receiverBusinessId: string;
+  receiverBusinessName: string;
+  sourcingRfqId?: string | null;
+  sourcingQuotationId?: string | null;
+  orderId?: string | null;
+  status: ShipmentStatus;
+  pickupCity: string;
+  pickupState: string;
+  deliveryCity: string;
+  deliveryState: string;
+  scheduledPickupAt?: string | null;
+  actualPickupAt?: string | null;
+  estimatedDeliveryAt?: string | null;
+  actualDeliveryAt?: string | null;
+  currentLocation?: string | null;
+  totalItemsCount: number;
+  totalLegsCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ShipmentDetailDto extends ShipmentSummaryDto {
+  pickupAddress: string;
+  pickupPostalCode: string;
+  pickupWarehouseId?: string | null;
+  pickupWarehouseName?: string | null;
+  deliveryAddress: string;
+  deliveryPostalCode: string;
+  deliveryContactName?: string | null;
+  deliveryContactPhone?: string | null;
+  totalWeightKg?: number | null;
+  totalVolumeCbm?: number | null;
+  declaredValue?: number | null;
+  deliveryFailureReason?: string | null;
+  deliveryAttemptCount: number;
+  notes?: string | null;
+  items: ShipmentItemDto[];
+  legs: ShipmentLegDto[];
+  trackingEvents: ShipmentTrackingEventDto[];
+  proofOfDelivery?: ProofOfDeliveryDto | null;
+}
