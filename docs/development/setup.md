@@ -40,8 +40,11 @@ docker compose up -d
 Copy `.env.example` files to `.env` in respective packages:
 
 ```bash
+cp .env.example .env
 cp apps/api-server/.env.example apps/api-server/.env
 cp apps/buyer-web/.env.example apps/buyer-web/.env.local
+cp apps/supplier-web/.env.example apps/supplier-web/.env.local
+cp apps/admin-web/.env.example apps/admin-web/.env.local
 ```
 
 ### Step 2.4: Database Schema Push & Seeding
@@ -53,9 +56,21 @@ pnpm db:generate
 # Push the schema to local PostgreSQL
 pnpm db:push
 
-# Seed foundational vehicle makes and categories
+# Seed comprehensive platform dataset (Accounts, Catalog, Warehouses, Stock, RFQs, Quotes, Shipments, POD)
 pnpm db:seed
 ```
+
+### Step 2.5: Seed Accounts & Dev OTP Reference
+
+In development mode (`NODE_ENV=development`), the default OTP is **`123456`** for instant tester login.
+
+| Role            | Business Name              | Type              | Phone        | Dev OTP  | Capabilities                                                               |
+| :-------------- | :------------------------- | :---------------- | :----------- | :------- | :------------------------------------------------------------------------- |
+| **Super Admin** | ASN Operations HQ          | Super Admin       | `9999999999` | `123456` | Platform surveillance, master catalog, logistics carriers                  |
+| **Buyer**       | Apex Multi-Brand Workshop  | WORKSHOP          | `9876543210` | `123456` | Vehicle fitment search, raise wholesale RFQs, award bids, track shipments  |
+| **Supplier 1**  | SuperSpares Distribution   | DISTRIBUTOR       | `9876543211` | `123456` | Mayapuri Hub stock (150 pads, 200 filters), quote RFQs, dispatch shipments |
+| **Supplier 2**  | National Parts Wholesalers | WHOLESALER        | `9876543212` | `123456` | Bhiwandi Hub stock (80 pads, 120 filters), competing wholesale quotations  |
+| **Logistics**   | Delhivery Express Freight  | LOGISTICS_PARTNER | `9876543213` | `123456` | Fleet transit updates, milestone logging, Proof of Delivery verification   |
 
 ---
 
@@ -89,6 +104,9 @@ pnpm typecheck
 
 # Check code formatting with Prettier
 pnpm format:check
+
+# Run Playwright browser end-to-end tests
+pnpm test:e2e
 ```
 
 ---

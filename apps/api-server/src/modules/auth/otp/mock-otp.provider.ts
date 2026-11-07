@@ -12,8 +12,8 @@ export class MockOtpProvider implements IOtpProvider {
 
     // Only log in development/test, never in production!
     if (process.env["NODE_ENV"] !== "production") {
-      this.logger.debug(
-        `[MOCK OTP DISPATCH] Delivered to ${phone.slice(0, 3)}****${phone.slice(-3)}`,
+      this.logger.info(
+        `[MOCK OTP DISPATCH] Delivered to ${phone.slice(0, 3)}****${phone.slice(-3)} | Development OTP: ${otp}`,
       );
     }
 
