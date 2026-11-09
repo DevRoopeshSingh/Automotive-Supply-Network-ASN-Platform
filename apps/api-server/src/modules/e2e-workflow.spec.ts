@@ -109,6 +109,7 @@ const { mockPrisma } = vi.hoisted(() => {
     shipment: {
       create: vi.fn(),
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn(),
       count: vi.fn(),
@@ -492,8 +493,13 @@ describe("ASN Platform — End-to-End Cross-Tenant Integration Workflow", () => 
         },
       ],
     };
-    mockPrisma.sourcingQuotation.update.mockResolvedValue(revisedQuote1);
-    currentQuote1 = revisedQuote1;
+    mockPrisma.sourcingQuotation.update.mockImplementation((args: any) => {
+      currentQuote1 = {
+        ...currentQuote1,
+        ...args.data,
+      };
+      return Promise.resolve(currentQuote1);
+    });
 
     const revisedQuote1Res = await quotationService.reviseQuotation(
       supplierBizId,

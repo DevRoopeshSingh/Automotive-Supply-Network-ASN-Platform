@@ -169,13 +169,25 @@ export default function BuyerPortalPage() {
     });
 
     if (verifyRes.success && verifyRes.data) {
-      const { accessToken, refreshToken, user } = verifyRes.data;
-      // Fetch user's businesses
-      const bizRes = await fetch("http://localhost:4000/api/v1/businesses/my", {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const bizData = await bizRes.json();
-      const myBusinesses = bizData.data || [];
+      const accessToken =
+        verifyRes.data.tokens?.accessToken || verifyRes.data.accessToken;
+      const refreshToken =
+        verifyRes.data.tokens?.refreshToken || verifyRes.data.refreshToken;
+      const user = verifyRes.data.user;
+
+      let myBusinesses: any[] = user?.memberships || [];
+      if (myBusinesses.length === 0 && accessToken) {
+        try {
+          const bizRes = await fetch(
+            "http://localhost:4000/api/v1/businesses/my",
+            {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            },
+          );
+          const bizData = await bizRes.json();
+          myBusinesses = bizData.data || [];
+        } catch {}
+      }
 
       if (myBusinesses.length > 0) {
         const primaryBiz = myBusinesses[0];
@@ -230,15 +242,26 @@ export default function BuyerPortalPage() {
     });
 
     if (res.success && res.data) {
-      const { accessToken, refreshToken, user } = res.data;
+      const accessToken = res.data.tokens?.accessToken || res.data.accessToken;
+      const refreshToken =
+        res.data.tokens?.refreshToken || res.data.refreshToken;
+      const user = res.data.user;
       setTempToken(accessToken);
       setTempUser(user);
 
-      const bizRes = await fetch("http://localhost:4000/api/v1/businesses/my", {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const bizData = await bizRes.json();
-      const myBusinesses = bizData.data || [];
+      let myBusinesses: any[] = user?.memberships || [];
+      if (myBusinesses.length === 0 && accessToken) {
+        try {
+          const bizRes = await fetch(
+            "http://localhost:4000/api/v1/businesses/my",
+            {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            },
+          );
+          const bizData = await bizRes.json();
+          myBusinesses = bizData.data || [];
+        } catch {}
+      }
 
       if (myBusinesses.length === 1) {
         const b = myBusinesses[0];
@@ -758,10 +781,12 @@ export default function BuyerPortalPage() {
                         </TableCell>
                         <TableCell>
                           <div className="font-semibold text-slate-900 leading-tight">
-                            {rfq.masterProduct?.name || "Automotive Part"}
+                            {rfq.masterProduct?.name ||
+                              rfq.productName ||
+                              "Automotive Part"}
                           </div>
                           <span className="text-xs font-mono text-slate-500">
-                            {rfq.masterProduct?.partNumber}
+                            {rfq.masterProduct?.partNumber || rfq.partNumber}
                           </span>
                         </TableCell>
                         <TableCell className="font-semibold">

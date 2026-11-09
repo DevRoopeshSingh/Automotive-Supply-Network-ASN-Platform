@@ -297,6 +297,21 @@ export class RfqService {
       data: { status: RfqStatus.CANCELLED },
     });
 
+    // Atomically reject open/revised quotations upon RFQ cancellation
+    try {
+      await prisma.sourcingQuotation.updateMany({
+        where: {
+          rfqId,
+          status: { in: [QuotationStatus.SUBMITTED, QuotationStatus.REVISED] },
+        },
+        data: { status: QuotationStatus.REJECTED },
+      });
+    } catch (err: any) {
+      if (err?.name !== "PrismaClientInitializationError") {
+        throw err;
+      }
+    }
+
     this.logger.info(`RFQ cancelled: ${updated.rfqNumber} (${updated.id})`, {
       buyerBusinessId,
       reason,
@@ -323,7 +338,12 @@ export class RfqService {
     quotationId: string,
   ): Promise<SourcingRfqDetailDto> {
     return await prisma.$transaction(async (tx) => {
-      // 1. Fetch RFQ with lock check
+      // 1. Fetch RFQ with lock check & row-level locking
+      if (typeof tx.$queryRaw === "function") {
+        await tx.$queryRaw`SELECT id FROM sourcing_rfqs WHERE id = ${rfqId}::uuid FOR UPDATE`;
+        await tx.$queryRaw`SELECT id FROM sourcing_quotations WHERE id = ${quotationId}::uuid FOR UPDATE`;
+      }
+
       const rfq = await tx.sourcingRfq.findUnique({
         where: { id: rfqId },
       });
@@ -389,7 +409,7 @@ export class RfqService {
       });
 
       // 5. Update RFQ to AWARDED
-      const updatedRfq = await tx.sourcingRfq.update({
+      await tx.sourcingRfq.update({
         where: { id: rfqId },
         data: {
           status: RfqStatus.AWARDED,
@@ -398,7 +418,7 @@ export class RfqService {
       });
 
       this.logger.info(
-        `RFQ awarded: ${updatedRfq.rfqNumber} -> Quotation ${quotation.quoteNumber} (Supplier: ${quotation.supplierBusiness.tradeName})`,
+        `RFQ awarded: ${rfq.rfqNumber} -> Quotation ${quotation.quoteNumber} (Supplier: ${quotation.supplierBusiness.tradeName})`,
         {
           rfqId,
           quotationId,
@@ -414,7 +434,7 @@ export class RfqService {
         action: "RFQ_AWARDED",
         resource: `SourcingRfq:${rfqId}`,
         payload: {
-          rfqNumber: updatedRfq.rfqNumber,
+          rfqNumber: rfq.rfqNumber,
           quotationId,
           quoteNumber: quotation.quoteNumber,
           supplierBusinessId: quotation.supplierBusinessId,
@@ -606,6 +626,26 @@ export class RfqService {
     // If caller is the buyer business, they see invited suppliers and full awarded quote details
     // If caller is an external supplier, sanitize invited suppliers list
     const isBuyer = rfq.buyerBusinessId === businessId;
+    const isGlobalAdmin = businessId === "00000000-0000-0000-0000-000000000000";
+
+    // Confidentiality check for non-buyer external suppliers:
+    if (!isBuyer && !isGlobalAdmin) {
+      if (rfq.status === RfqStatus.DRAFT) {
+        throw new ForbiddenException(
+          "Draft RFQs are private to the buyer and not accessible to external suppliers",
+        );
+      }
+      if (
+        rfq.invitedSuppliers.length > 0 &&
+        !rfq.invitedSuppliers.some(
+          (inv) => inv.supplierBusinessId === businessId,
+        )
+      ) {
+        throw new ForbiddenException(
+          "This is a private RFQ and your business is not on the invited suppliers list",
+        );
+      }
+    }
 
     let awardedQuoteSummary: SourcingRfqDetailDto["awardedQuotation"] = null;
     if (rfq.awardedQuotation) {
@@ -718,7 +758,20 @@ export class RfqService {
     buyerBusinessId: string,
     rfqId: string,
   ): Promise<RfqComparisonDto> {
+    const isGlobalAdmin =
+      buyerBusinessId === "00000000-0000-0000-0000-000000000000";
     const rfq = await this.getRfqDetail(buyerBusinessId, rfqId);
+
+    // STRICT CONFIDENTIALITY: Only the RFQ buyer (or Super Admin) can view competing quotations
+    if (
+      rfq.buyerBusinessId &&
+      rfq.buyerBusinessId !== buyerBusinessId &&
+      !isGlobalAdmin
+    ) {
+      throw new ForbiddenException(
+        "Access denied: Commercial quotation comparisons are strictly confidential to the buyer who raised the RFQ",
+      );
+    }
 
     const quotes = await prisma.sourcingQuotation.findMany({
       where: { rfqId },

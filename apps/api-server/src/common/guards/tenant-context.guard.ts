@@ -30,13 +30,30 @@ export class TenantContextGuard implements CanActivate {
     }
 
     // Determine target business ID from header, param, or user default
+    // Note: request.params.id is only treated as a businessId if the route explicitly targets /businesses/:id
+    const isBusinessRoute =
+      Boolean(request.baseUrl?.includes("businesses")) ||
+      Boolean(request.url?.includes("/businesses/"));
+
     const businessId =
       (request.headers["x-business-id"] as string) ||
       request.params?.businessId ||
-      request.params?.id ||
+      (isBusinessRoute ? request.params?.id : undefined) ||
       user.activeBusinessId;
 
     if (!businessId) {
+      if (user.isSuperAdmin) {
+        request.businessContext = {
+          id: "00000000-0000-0000-0000-000000000000",
+          legalName: "ASN Platform Administration",
+          tradeName: "ASN Global Admin",
+          businessType: BusinessType.DISTRIBUTOR,
+          isVerified: true,
+          currentUserRole: UserRole.PLATFORM_SUPER_ADMIN,
+        } as BusinessContext;
+        return true;
+      }
+
       throw new BadRequestException({
         success: false,
         error: {

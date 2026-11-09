@@ -142,6 +142,14 @@ test.describe("ASN Supplier OS — End-to-End Workflow", () => {
               phone: "9876543211",
               firstName: "Ramesh",
               lastName: "Patel",
+              memberships: [
+                {
+                  id: "biz-supp-1",
+                  tradeName: "SuperSpares Distribution",
+                  legalName: "SuperSpares Logistics LLP",
+                  role: "BUSINESS_OWNER",
+                },
+              ],
             },
           },
         }),

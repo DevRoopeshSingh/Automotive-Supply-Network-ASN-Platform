@@ -53,11 +53,21 @@ export class OtpService {
     rawPhone: string,
   ): Promise<{ success: boolean; message: string }> {
     const phone = this.normalizePhone(rawPhone);
+    const isDevPhone =
+      envConfig.NODE_ENV !== "production" &&
+      envConfig.ALLOW_DEV_OTP === "true" &&
+      [
+        "9876543210",
+        "9876543211",
+        "9876543212",
+        "9876543213",
+        "9999999999",
+      ].includes(phone);
 
     // 1. Rate Limiting: Check cooldown (60s)
     const cooldownKey = `otp:cooldown:${phone}`;
     const isInCooldown = await this.redisService.get(cooldownKey);
-    if (isInCooldown) {
+    if (isInCooldown && !isDevPhone) {
       throw new HttpException(
         {
           success: false,
@@ -76,7 +86,7 @@ export class OtpService {
       rateKey,
       this.RATE_LIMIT_WINDOW_SECONDS,
     );
-    if (requestCount > this.RATE_LIMIT_MAX) {
+    if (requestCount > this.RATE_LIMIT_MAX && !isDevPhone) {
       throw new HttpException(
         {
           success: false,
@@ -115,7 +125,9 @@ export class OtpService {
     });
 
     // 6. Set cooldown key in Redis
-    await this.redisService.set(cooldownKey, "1", this.COOLDOWN_SECONDS);
+    if (!isDevPhone) {
+      await this.redisService.set(cooldownKey, "1", this.COOLDOWN_SECONDS);
+    }
 
     // 7. Dispatch via Provider
     await this.otpProvider.sendOtp(phone, otpNumber);
@@ -183,15 +195,18 @@ export class OtpService {
       });
     }
 
-    // Timing-safe hash comparison (with development/test fallback in non-production)
+    // Timing-safe hash comparison (with development/test fallback strictly gated by ALLOW_DEV_OTP in non-production)
     const isDevDefaultOtp =
-      process.env["NODE_ENV"] !== "production" && otp === "123456";
+      envConfig.NODE_ENV !== "production" &&
+      envConfig.ALLOW_DEV_OTP === "true" &&
+      otp === "123456";
 
     const providedHash = this.hashOtp(otp);
-    const isHashValid = crypto.timingSafeEqual(
-      Buffer.from(providedHash, "utf8"),
-      Buffer.from(record.otpHash, "utf8"),
-    );
+    const providedBuffer = Buffer.from(providedHash, "utf8");
+    const recordBuffer = Buffer.from(record.otpHash, "utf8");
+    const isHashValid =
+      providedBuffer.length === recordBuffer.length &&
+      crypto.timingSafeEqual(providedBuffer, recordBuffer);
 
     if (!isHashValid && !isDevDefaultOtp) {
       await prisma.otpRecord.update({

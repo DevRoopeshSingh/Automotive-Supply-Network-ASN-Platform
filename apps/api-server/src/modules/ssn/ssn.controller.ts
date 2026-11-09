@@ -42,6 +42,7 @@ import {
   UserContext,
   BusinessContext,
   UserRole,
+  BusinessType,
   ApiResponse as IApiResponse,
 } from "@asn/types";
 
@@ -151,6 +152,41 @@ export class SsnController {
     return {
       success: true,
       data,
+    };
+  }
+
+  @Get("rfqs")
+  @ApiOperation({
+    summary: "List RFQs for the active business or discover open RFQs",
+  })
+  @ApiQuery({ name: "status", required: false })
+  @ApiQuery({ name: "q", required: false })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  async listRfqs(
+    @CurrentBusiness() business: BusinessContext,
+    @Query(new ZodValidationPipe(RfqQuerySchema)) query: RfqQueryInput,
+  ): Promise<IApiResponse<any>> {
+    const isSupplier =
+      business.businessType === BusinessType.DISTRIBUTOR ||
+      business.businessType === BusinessType.WHOLESALER ||
+      business.businessType === BusinessType.MANUFACTURER;
+
+    const myRfqs = await this.rfqService.listMyRfqs(business.id, query);
+    if (myRfqs.items.length === 0 && isSupplier) {
+      const openRfqs = await this.rfqService.discoverOpenRfqs(
+        business.id,
+        query,
+      );
+      return {
+        success: true,
+        data: openRfqs,
+      };
+    }
+
+    return {
+      success: true,
+      data: myRfqs,
     };
   }
 

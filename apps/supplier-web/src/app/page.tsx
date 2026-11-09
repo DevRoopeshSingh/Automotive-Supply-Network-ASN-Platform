@@ -201,12 +201,25 @@ SS-BOSCH-SP01,FR 7 DC+,BOSCH,WH-DEL-01,150,140.00,20`;
     });
 
     if (verifyRes.success && verifyRes.data) {
-      const { accessToken, refreshToken, user } = verifyRes.data;
-      const bizRes = await fetch("http://localhost:4000/api/v1/businesses/my", {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const bizData = await bizRes.json();
-      const myBusinesses = bizData.data || [];
+      const accessToken =
+        verifyRes.data.tokens?.accessToken || verifyRes.data.accessToken;
+      const refreshToken =
+        verifyRes.data.tokens?.refreshToken || verifyRes.data.refreshToken;
+      const user = verifyRes.data.user;
+
+      let myBusinesses: any[] = user?.memberships || [];
+      if (myBusinesses.length === 0 && accessToken) {
+        try {
+          const bizRes = await fetch(
+            "http://localhost:4000/api/v1/businesses/my",
+            {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            },
+          );
+          const bizData = await bizRes.json();
+          myBusinesses = bizData.data || [];
+        } catch {}
+      }
 
       if (myBusinesses.length > 0) {
         const primaryBiz = myBusinesses[0];
@@ -261,15 +274,26 @@ SS-BOSCH-SP01,FR 7 DC+,BOSCH,WH-DEL-01,150,140.00,20`;
     });
 
     if (res.success && res.data) {
-      const { accessToken, refreshToken, user } = res.data;
+      const accessToken = res.data.tokens?.accessToken || res.data.accessToken;
+      const refreshToken =
+        res.data.tokens?.refreshToken || res.data.refreshToken;
+      const user = res.data.user;
       setTempToken(accessToken);
       setTempUser(user);
 
-      const bizRes = await fetch("http://localhost:4000/api/v1/businesses/my", {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const bizData = await bizRes.json();
-      const myBusinesses = bizData.data || [];
+      let myBusinesses: any[] = user?.memberships || [];
+      if (myBusinesses.length === 0 && accessToken) {
+        try {
+          const bizRes = await fetch(
+            "http://localhost:4000/api/v1/businesses/my",
+            {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            },
+          );
+          const bizData = await bizRes.json();
+          myBusinesses = bizData.data || [];
+        } catch {}
+      }
 
       if (myBusinesses.length === 1) {
         const b = myBusinesses[0];
@@ -690,15 +714,21 @@ SS-BOSCH-SP01,FR 7 DC+,BOSCH,WH-DEL-01,150,140.00,20`;
                         <TableCell>
                           <div className="font-bold text-slate-900">
                             {inv.supplierProduct?.masterProduct?.name ||
+                              inv.supplierSku ||
                               "Automotive Part"}
                           </div>
                           <div className="text-xs font-mono text-slate-500">
-                            SKU: {inv.supplierProduct?.supplierSku} • Part:{" "}
-                            {inv.supplierProduct?.masterProduct?.partNumber}
+                            SKU:{" "}
+                            {inv.supplierProduct?.supplierSku ||
+                              inv.supplierSku}{" "}
+                            • Part:{" "}
+                            {inv.supplierProduct?.masterProduct?.partNumber ||
+                              inv.supplierSku}
                           </div>
                         </TableCell>
                         <TableCell className="font-semibold text-slate-700">
-                          {inv.warehouse?.name} ({inv.warehouse?.code})
+                          {inv.warehouse?.name || inv.warehouseName} (
+                          {inv.warehouse?.code || inv.warehouseCode})
                         </TableCell>
                         <TableCell className="font-bold text-slate-900">
                           {inv.quantity} units
@@ -1070,14 +1100,18 @@ SS-BOSCH-SP01,FR 7 DC+,BOSCH,WH-DEL-01,150,140.00,20`;
                           {rfq.rfqNumber}
                         </TableCell>
                         <TableCell className="font-semibold text-slate-900">
-                          {rfq.buyerBusiness?.tradeName || "Buyer"}
+                          {rfq.buyerBusiness?.tradeName ||
+                            rfq.buyerBusinessName ||
+                            "Buyer"}
                         </TableCell>
                         <TableCell>
                           <div className="font-semibold text-slate-900">
-                            {rfq.masterProduct?.name}
+                            {rfq.masterProduct?.name ||
+                              rfq.productName ||
+                              "Automotive Part"}
                           </div>
                           <span className="text-xs font-mono text-slate-500">
-                            {rfq.masterProduct?.partNumber}
+                            {rfq.masterProduct?.partNumber || rfq.partNumber}
                           </span>
                         </TableCell>
                         <TableCell className="font-semibold">

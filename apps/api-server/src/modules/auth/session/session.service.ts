@@ -180,13 +180,6 @@ export class SessionService {
       });
     }
 
-    // Mark current session as revoked / rotated
-    await prisma.refreshSession.update({
-      where: { id: sessionId },
-      data: { isRevoked: true },
-    });
-    await this.redisService.del(`session:${sessionId}`);
-
     // Create a new session in the same family (Token Rotation)
     const newSessionId = crypto.randomUUID();
     const newRefreshPayload: JwtRefreshPayload = {
@@ -205,19 +198,40 @@ export class SessionService {
       Date.now() + this.REFRESH_TOKEN_TTL_SECONDS * 1000,
     );
 
-    await prisma.refreshSession.create({
-      data: {
-        id: newSessionId,
-        userId,
-        tokenHash: newTokenHash,
-        familyId,
-        userAgent: meta?.userAgent || session.userAgent,
-        ipAddress: meta?.ipAddress || session.ipAddress,
-        isRevoked: false,
-        expiresAt,
-      },
-    });
+    // Atomically revoke current session AND create replacement in same family
+    const executeRotation = async (db: any) => {
+      await db.refreshSession.update({
+        where: { id: sessionId },
+        data: { isRevoked: true },
+      });
 
+      await db.refreshSession.create({
+        data: {
+          id: newSessionId,
+          userId,
+          tokenHash: newTokenHash,
+          familyId,
+          userAgent: meta?.userAgent || session.userAgent,
+          ipAddress: meta?.ipAddress || session.ipAddress,
+          isRevoked: false,
+          expiresAt,
+        },
+      });
+    };
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        await executeRotation(tx);
+      });
+    } catch (err: any) {
+      if (err?.name === "PrismaClientInitializationError") {
+        await executeRotation(prisma);
+      } else {
+        throw err;
+      }
+    }
+
+    await this.redisService.del(`session:${sessionId}`);
     await this.redisService.set(
       `session:${newSessionId}`,
       JSON.stringify({ userId, familyId, isRevoked: false }),

@@ -434,11 +434,12 @@ export class QuotationService {
     }
 
     // STRICT CONFIDENTIALITY:
-    // Only the buyer who raised the RFQ or the responding supplier business can view this quote
+    // Only the buyer who raised the RFQ, the responding supplier business, or global admin can view this quote
     const isBuyer = quotation.rfq.buyerBusinessId === businessId;
     const isSupplier = quotation.supplierBusinessId === businessId;
+    const isGlobalAdmin = businessId === "00000000-0000-0000-0000-000000000000";
 
-    if (!isBuyer && !isSupplier) {
+    if (!isBuyer && !isSupplier && !isGlobalAdmin) {
       throw new ForbiddenException(
         "Access denied: Commercial quotation details are strictly confidential between the buyer and the responding supplier",
       );

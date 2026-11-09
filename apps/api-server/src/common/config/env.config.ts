@@ -18,6 +18,7 @@ function loadConfig(): BackendEnv {
       process.env["JWT_REFRESH_SECRET"] ||
       "asn_super_secret_refresh_jwt_key_with_at_least_32_chars",
     CORS_ORIGIN: process.env["CORS_ORIGIN"] || "*",
+    ALLOW_DEV_OTP: (process.env["ALLOW_DEV_OTP"] || "false").toLowerCase(),
   });
 
   if (!result.success) {

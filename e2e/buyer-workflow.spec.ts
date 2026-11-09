@@ -192,38 +192,6 @@ test.describe("ASN Buyer Marketplace — End-to-End Workflow", () => {
         }),
       });
     });
-  });
-
-  test("should render catalog search, display part details and fitment badges", async ({
-    page,
-  }) => {
-    await page.goto("http://localhost:3000");
-
-    // Check title & branding
-    await expect(page.locator("text=ASNMarketplace")).toBeVisible();
-    await expect(page.locator("text=Delhi NCR Cluster")).toBeVisible();
-
-    // Verify catalog items rendered from API
-    await expect(
-      page.locator("text=Bosch Front Ceramic Brake Pad Set"),
-    ).toBeVisible();
-    await expect(page.locator("text=0986AB1234")).toBeVisible();
-    await expect(page.locator("text=Hyundai Creta")).toBeVisible();
-
-    // Open specifications modal
-    await page.click("button:has-text('Specs & Fitment')");
-    await expect(
-      page.locator("h3:has-text('Bosch Front Ceramic Brake Pad Set')"),
-    ).toBeVisible();
-    await expect(
-      page.locator("text=Verified Compatible Vehicle Models"),
-    ).toBeVisible();
-
-    // Close modal
-    await page.click("button:has-text('Close')");
-  });
-
-  test("should authenticate buyer using dev OTP flow", async ({ page }) => {
     // Intercept auth APIs
     await page.route("**/api/v1/auth/otp/request", async (route) => {
       await route.fulfill({
@@ -273,7 +241,37 @@ test.describe("ASN Buyer Marketplace — End-to-End Workflow", () => {
         }),
       });
     });
+  });
 
+  test("should render catalog search, display part details and fitment badges", async ({
+    page,
+  }) => {
+    await page.goto("http://localhost:3000");
+
+    // Check title & branding
+    await expect(page.locator("text=ASNMarketplace")).toBeVisible();
+    await expect(page.locator("text=Delhi NCR Cluster")).toBeVisible();
+
+    // Verify catalog items rendered from API
+    await expect(
+      page.locator("text=Bosch Front Ceramic Brake Pad Set"),
+    ).toBeVisible();
+    await expect(page.locator("text=0986AB1234")).toBeVisible();
+    await expect(
+      page.locator("span:has-text('Hyundai Creta')").first(),
+    ).toBeVisible();
+
+    // Open specifications modal
+    await page.click("button:has-text('Specs & Fitment')");
+    await expect(
+      page.locator("text=Verified Compatible Vehicle Models"),
+    ).toBeVisible();
+
+    // Close modal
+    await page.click("button:has-text('Close')");
+  });
+
+  test("should authenticate buyer using dev OTP flow", async ({ page }) => {
     await page.goto("http://localhost:3000");
 
     // Click quick dev login
@@ -289,6 +287,10 @@ test.describe("ASN Buyer Marketplace — End-to-End Workflow", () => {
   }) => {
     await page.goto("http://localhost:3000");
 
+    // Quick login as Apex Workshop to unlock wholesale data
+    await page.click("button:has-text('Quick Login (Apex Workshop)')");
+    await expect(page.locator("text=Apex Multi-Brand Workshop")).toBeVisible();
+
     // Switch to Wholesale RFQs tab
     await page.click("button:has-text('Wholesale RFQs')");
     await expect(page.locator("text=RFQ-2026-0001")).toBeVisible();
@@ -299,6 +301,9 @@ test.describe("ASN Buyer Marketplace — End-to-End Workflow", () => {
     await expect(page.locator("text=SuperSpares Distribution")).toBeVisible();
     await expect(page.locator("text=Best Price")).toBeVisible();
     await expect(page.locator("text=₹1,050")).toBeVisible();
+
+    // Close comparison modal before switching tabs
+    await page.keyboard.press("Escape");
 
     // Switch to Deliveries tab
     await page.click("button:has-text('Deliveries')");

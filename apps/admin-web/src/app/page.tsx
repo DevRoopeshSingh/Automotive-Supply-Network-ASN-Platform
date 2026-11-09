@@ -151,7 +151,11 @@ export default function AdminControlCentrePage() {
     });
 
     if (verifyRes.success && verifyRes.data) {
-      const { accessToken, refreshToken, user } = verifyRes.data;
+      const accessToken =
+        verifyRes.data.tokens?.accessToken || verifyRes.data.accessToken;
+      const refreshToken =
+        verifyRes.data.tokens?.refreshToken || verifyRes.data.refreshToken;
+      const user = verifyRes.data.user;
       const newSession: StoredSession = {
         accessToken,
         refreshToken,
@@ -160,6 +164,9 @@ export default function AdminControlCentrePage() {
       saveSession(newSession);
       setSession(newSession);
       setShowAuthModal(false);
+      loadCatalog();
+      loadProviders();
+      loadShipments();
     } else {
       setAuthError(verifyRes.error?.message || "Admin login failed.");
     }
@@ -192,7 +199,10 @@ export default function AdminControlCentrePage() {
     });
 
     if (res.success && res.data) {
-      const { accessToken, refreshToken, user } = res.data;
+      const accessToken = res.data.tokens?.accessToken || res.data.accessToken;
+      const refreshToken =
+        res.data.tokens?.refreshToken || res.data.refreshToken;
+      const user = res.data.user;
       const newSession: StoredSession = {
         accessToken,
         refreshToken,
@@ -201,6 +211,9 @@ export default function AdminControlCentrePage() {
       saveSession(newSession);
       setSession(newSession);
       setShowAuthModal(false);
+      loadCatalog();
+      loadProviders();
+      loadShipments();
     } else {
       setAuthError(res.error?.message || "Invalid OTP code");
     }

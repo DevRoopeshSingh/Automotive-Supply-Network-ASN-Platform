@@ -17,8 +17,29 @@ async function bootstrap() {
   // Security middleware
   app.use(helmet());
   app.use(cookieParser());
+
+  const corsOrigin = process.env["CORS_ORIGIN"];
+  const allowedOrigins =
+    corsOrigin && corsOrigin !== "*"
+      ? corsOrigin.split(",").map((o) => o.trim())
+      : [
+          "http://localhost:3000",
+          "http://localhost:3001",
+          "http://localhost:3002",
+          "http://127.0.0.1:3000",
+          "http://127.0.0.1:3001",
+          "http://127.0.0.1:3002",
+        ];
+
   app.enableCors({
-    origin: process.env["CORS_ORIGIN"] || "*",
+    origin: (origin, callback) => {
+      // Allow non-browser agents (cURL, mobile apps, health monitors) or matching origins
+      if (!origin || allowedOrigins.includes(origin) || corsOrigin === "*") {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS blocked for origin: ${origin}`), false);
+      }
+    },
     credentials: true,
   });
 

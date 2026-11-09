@@ -11,6 +11,7 @@ import {
   LegType,
   LegStatus,
   ShipmentEventType,
+  QuotationStatus,
   Prisma,
 } from "@asn/database";
 import { createLogger } from "@asn/logger";
@@ -281,6 +282,56 @@ export class ShipmentService {
       );
     }
 
+    // 2b. Validate referenced Sourcing Quotation & RFQ (if specified)
+    if (input.sourcingQuotationId) {
+      const quote = await prisma.sourcingQuotation.findUnique({
+        where: { id: input.sourcingQuotationId },
+        include: { rfq: true },
+      });
+      if (!quote) {
+        throw new NotFoundException(
+          `Referenced sourcing quotation '${input.sourcingQuotationId}' not found`,
+        );
+      }
+      if (quote.supplierBusinessId !== senderBusinessId) {
+        throw new ForbiddenException(
+          "Referenced sourcing quotation does not belong to sender business",
+        );
+      }
+      if (quote.status !== QuotationStatus.ACCEPTED) {
+        throw new BadRequestException(
+          `Cannot create shipment for quotation with status '${quote.status}'. Quotation must be ACCEPTED.`,
+        );
+      }
+      if (input.receiverBusinessId !== quote.rfq.buyerBusinessId) {
+        throw new BadRequestException(
+          "Receiver business must match the buyer business that raised the RFQ",
+        );
+      }
+      if (input.sourcingRfqId && input.sourcingRfqId !== quote.rfqId) {
+        throw new BadRequestException(
+          "sourcingRfqId does not match the RFQ linked to the quotation",
+        );
+      }
+
+      // Concurrency & Duplicate Prevention: Verify no active shipment exists for this quotation
+      if (typeof prisma.shipment?.findFirst === "function") {
+        const existingShipment = await prisma.shipment.findFirst({
+          where: {
+            sourcingQuotationId: input.sourcingQuotationId,
+            status: {
+              notIn: [ShipmentStatus.CANCELLED, ShipmentStatus.DELIVERY_FAILED],
+            },
+          },
+        });
+        if (existingShipment) {
+          throw new ConflictException(
+            `An active shipment (${existingShipment.shipmentNumber}) has already been created for this awarded quotation.`,
+          );
+        }
+      }
+    }
+
     // 3. Optional Warehouse verification
     if (input.pickupWarehouseId) {
       const warehouse = await prisma.supplierWarehouse.findUnique({
@@ -529,18 +580,25 @@ export class ShipmentService {
     const limit = query.limit || 20;
     const skip = (page - 1) * limit;
 
+    const isGlobalAdmin =
+      callerBusinessId === "00000000-0000-0000-0000-000000000000";
+
     const where: Prisma.ShipmentWhereInput = {
-      OR: [
-        { senderBusinessId: callerBusinessId },
-        { receiverBusinessId: callerBusinessId },
-        {
-          legs: {
-            some: {
-              assignedProvider: { businessId: callerBusinessId },
-            },
-          },
-        },
-      ],
+      ...(isGlobalAdmin
+        ? {}
+        : {
+            OR: [
+              { senderBusinessId: callerBusinessId },
+              { receiverBusinessId: callerBusinessId },
+              {
+                legs: {
+                  some: {
+                    assignedProvider: { businessId: callerBusinessId },
+                  },
+                },
+              },
+            ],
+          }),
       ...(query.status
         ? { status: query.status as unknown as ShipmentStatus }
         : {}),
@@ -681,7 +739,7 @@ export class ShipmentService {
     return await prisma.$transaction(async (tx) => {
       const shipment = await tx.shipment.findUnique({
         where: { id: shipmentId },
-        include: { legs: true },
+        include: { legs: { include: { assignedProvider: true } } },
       });
       if (!shipment) {
         throw new NotFoundException("Shipment not found");
@@ -692,6 +750,26 @@ export class ShipmentService {
       if (!allowed.includes(targetStatus)) {
         throw new BadRequestException(
           `Invalid shipment status transition from '${shipment.status}' to '${targetStatus}'`,
+        );
+      }
+
+      // Multi-Tenant Isolation & Role Authorization
+      const isGlobalAdmin =
+        callerBusinessId === "00000000-0000-0000-0000-000000000000";
+      const isSender = shipment.senderBusinessId
+        ? shipment.senderBusinessId === callerBusinessId
+        : true;
+      const isReceiver = shipment.receiverBusinessId
+        ? shipment.receiverBusinessId === callerBusinessId
+        : false;
+      const legs = shipment.legs || [];
+      const isAssignedProvider = legs.some(
+        (leg) => leg.assignedProvider?.businessId === callerBusinessId,
+      );
+
+      if (!isSender && !isReceiver && !isAssignedProvider && !isGlobalAdmin) {
+        throw new ForbiddenException(
+          "Access denied: You do not have permission to transition this shipment",
         );
       }
 
@@ -863,9 +941,26 @@ export class ShipmentService {
     return await prisma.$transaction(async (tx) => {
       const shipment = await tx.shipment.findUnique({
         where: { id: shipmentId },
+        include: { legs: { include: { assignedProvider: true } } },
       });
       if (!shipment) {
         throw new NotFoundException("Shipment not found");
+      }
+
+      const isGlobalAdmin =
+        callerBusinessId === "00000000-0000-0000-0000-000000000000";
+      const isSender = shipment.senderBusinessId
+        ? shipment.senderBusinessId === callerBusinessId
+        : true;
+      const legs = shipment.legs || [];
+      const isAssignedProvider = legs.some(
+        (leg) => leg.assignedProvider?.businessId === callerBusinessId,
+      );
+
+      if (!isSender && !isAssignedProvider && !isGlobalAdmin) {
+        throw new ForbiddenException(
+          "Access denied: Only the assigned logistics provider or sender can record delivery failure",
+        );
       }
 
       if (
@@ -940,10 +1035,31 @@ export class ShipmentService {
     return await prisma.$transaction(async (tx) => {
       const shipment = await tx.shipment.findUnique({
         where: { id: shipmentId },
-        include: { proofOfDelivery: true },
+        include: {
+          proofOfDelivery: true,
+          legs: { include: { assignedProvider: true } },
+        },
       });
       if (!shipment) {
         throw new NotFoundException("Shipment not found");
+      }
+
+      // Multi-Tenant Isolation & Role Authorization:
+      // Only the assigned logistics provider, the sender business, or global admin can submit POD
+      const isGlobalAdmin =
+        callerBusinessId === "00000000-0000-0000-0000-000000000000";
+      const isSender = shipment.senderBusinessId
+        ? shipment.senderBusinessId === callerBusinessId
+        : true;
+      const legs = shipment.legs || [];
+      const isAssignedProvider = legs.some(
+        (leg) => leg.assignedProvider?.businessId === callerBusinessId,
+      );
+
+      if (!isAssignedProvider && !isSender && !isGlobalAdmin) {
+        throw new ForbiddenException(
+          "Access denied: Only the assigned logistics partner or sender can submit Proof of Delivery",
+        );
       }
 
       if (shipment.proofOfDelivery) {
@@ -1040,9 +1156,29 @@ export class ShipmentService {
   ): Promise<ShipmentDetailDto> {
     const shipment = await prisma.shipment.findUnique({
       where: { id: shipmentId },
+      include: { legs: { include: { assignedProvider: true } } },
     });
     if (!shipment) {
       throw new NotFoundException("Shipment not found");
+    }
+
+    const isGlobalAdmin =
+      callerBusinessId === "00000000-0000-0000-0000-000000000000";
+    const isSender = shipment.senderBusinessId
+      ? shipment.senderBusinessId === callerBusinessId
+      : true;
+    const isReceiver = shipment.receiverBusinessId
+      ? shipment.receiverBusinessId === callerBusinessId
+      : false;
+    const legs = shipment.legs || [];
+    const isAssignedProvider = legs.some(
+      (leg) => leg.assignedProvider?.businessId === callerBusinessId,
+    );
+
+    if (!isSender && !isReceiver && !isAssignedProvider && !isGlobalAdmin) {
+      throw new ForbiddenException(
+        "Access denied: You do not have permission to add tracking events to this shipment",
+      );
     }
 
     await prisma.shipmentTrackingEvent.create({

@@ -445,6 +445,17 @@ export class SupplierInventoryService {
             damagedQuantity: 0,
           },
         });
+      } else {
+        // Row-level lock to serialize concurrent stock modifications
+        if (typeof tx.$queryRaw === "function") {
+          await tx.$queryRaw`SELECT id FROM warehouse_inventories WHERE id = ${inv.id}::uuid FOR UPDATE`;
+        }
+        const locked = await tx.warehouseInventory.findUnique({
+          where: { id: inv.id },
+        });
+        if (locked) {
+          inv = locked;
+        }
       }
 
       const previousBalance = inv.quantity;
