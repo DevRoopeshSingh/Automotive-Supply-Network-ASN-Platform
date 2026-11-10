@@ -34,3 +34,4 @@ RUN pnpm install --frozen-lockfile --prod
 EXPOSE 3000
 
 CMD ["pnpm", "--filter", "@asn/buyer-web", "start"]
+

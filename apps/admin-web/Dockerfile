@@ -34,3 +34,4 @@ RUN pnpm install --frozen-lockfile --prod
 EXPOSE 3002
 
 CMD ["pnpm", "--filter", "@asn/admin-web", "start"]
+

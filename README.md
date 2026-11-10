@@ -18,15 +18,16 @@ The platform coordinates the entire lifecycle:
 
 ---
 
-## 2. Platform Applications
+## 2. Platform Applications & Local Endpoints
 
-| Application                                        | Workspace Target                        | Technology                             | Port   |
-| :------------------------------------------------- | :-------------------------------------- | :------------------------------------- | :----- |
-| **Buyer Marketplace** (`apps/buyer-web`)           | Garages, Fleets, Vehicle Owners         | Next.js 14 App Router, React, Tailwind | `3000` |
-| **Supplier OS** (`apps/supplier-web`)              | Distributors, Wholesalers, Retailers    | Next.js 14 App Router, React, Tailwind | `3001` |
-| **Admin Control Centre** (`apps/admin-web`)        | Operations, Catalog & Finance Team      | Next.js 14 App Router, React, Tailwind | `3002` |
-| **Logistics Mobile App** (`apps/logistics-mobile`) | Independent Delivery Couriers & Drivers | React Native, Expo                     | `8081` |
-| **Backend API Monolith** (`apps/api-server`)       | Shared Core Infrastructure              | Node.js 20 LTS, NestJS 10, OpenAPI     | `4000` |
+| Application                                  | Workspace Target           | Technology            | Local Port | Local URL                                                    |
+| :------------------------------------------- | :------------------------- | :-------------------- | :--------- | :----------------------------------------------------------- |
+| **Buyer Marketplace** (`apps/buyer-web`)     | Garages, Fleets, Mechanics | Next.js 14 App Router | `3000`     | [http://localhost:3000](http://localhost:3000)               |
+| **Supplier OS** (`apps/supplier-web`)        | Distributors, Wholesalers  | Next.js 14 App Router | `3001`     | [http://localhost:3001](http://localhost:3001)               |
+| **Admin Control Centre** (`apps/admin-web`)  | Platform Ops, Governance   | Next.js 14 App Router | `3002`     | [http://localhost:3002](http://localhost:3002)               |
+| **Backend API Monolith** (`apps/api-server`) | Core Business Engine       | NestJS 10, Fastify    | `4000`     | [http://localhost:4000](http://localhost:4000)               |
+| **Interactive API Docs**                     | OpenAPI / Swagger UI       | Swagger UI            | `4000`     | [http://localhost:4000/docs](http://localhost:4000/docs)     |
+| **API Health Probe**                         | Health Check Endpoint      | JSON Health Probe     | `4000`     | [http://localhost:4000/health](http://localhost:4000/health) |
 
 ---
 
@@ -82,16 +83,31 @@ pnpm db:seed
 pnpm dev
 ```
 
-### Running Tests & Quality Checks
+### Seeded Demo Accounts (One-Click or OTP Login)
+
+In development mode, SMS dispatch is mocked. All accounts log in using OTP: **`123456`**, or via the one-click **"Quick Demo Login"** button on each portal:
+
+| Persona      | Phone Number | Dev OTP  | Role & Organization                                             |
+| :----------- | :----------- | :------- | :-------------------------------------------------------------- |
+| **Buyer**    | `9876543210` | `123456` | Vikram Sharma — Apex Auto Care & Garages (`WORKSHOP`)           |
+| **Supplier** | `9876543211` | `123456` | Ramesh Patel — SuperSpares Distribution (`DISTRIBUTOR`)         |
+| **Carrier**  | `9876543213` | `123456` | Rajesh Sharma — Delhivery Express Freight (`LOGISTICS_PARTNER`) |
+| **Admin**    | `9999999999` | `123456` | Amit Singhania — Platform Super Admin (`PLATFORM_SUPER_ADMIN`)  |
+
+### Running Tests & Quality Verification
 
 ```bash
-# Run all unit tests
+# Run unit & integration test suites
 pnpm test
 
-# Run TypeScript typechecks across all workspaces
+# Run browser-based end-to-end tests (Playwright)
+pnpm test:e2e
+
+# Run TypeScript typechecks across all 16 workspaces
 pnpm typecheck
 
-# Format code
+# Check or auto-fix formatting
+pnpm format:check
 pnpm format
 ```
 
@@ -99,7 +115,10 @@ pnpm format
 
 ## 5. Documentation Links
 
+- [**Local Execution & Developer Runbook**](docs/development/local-execution-guide.md) — Complete local setup, ports, seeded users & workflows
+- [Local Development & Environment Setup](docs/development/setup.md) — Comprehensive API curl reference & tenant guides
+- [Cost-Effective Production Deployment Strategy](docs/deployment/cost-effective-deployment-strategy.md) — Hetzner / DigitalOcean $20-$40/mo blueprint
+- [Docker Compose Production Guide](docs/deployment/docker-compose-production-guide.md) — Single-node production deployment runbook
 - [System Architecture Overview](docs/architecture/system-architecture.md)
 - [Monorepo Structure & Boundaries](docs/architecture/monorepo-structure.md)
-- [Local Development & Environment Setup](docs/development/setup.md)
 - [Architectural Decision Records (ADRs)](docs/architecture/decisions/)
